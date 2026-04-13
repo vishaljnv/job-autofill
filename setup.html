@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FormFill AI — Setup</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0c0b18;
+      --surface: #131221;
+      --card: #1a1a2e;
+      --border: rgba(196,169,125,0.15);
+      --border-focus: rgba(196,169,125,0.5);
+      --gold: #c4a97d;
+      --gold-light: #e8d5b7;
+      --gold-dim: #8a7560;
+      --text: #e8d5b7;
+      --text-dim: #a08060;
+      --text-muted: #5a4535;
+      --green: #22c55e;
+      --red: #ef4444;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Source Serif 4', Georgia, serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 20px 60px;
+    }
+
+    /* Ambient background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: 
+        radial-gradient(ellipse 80% 50% at 20% 20%, rgba(196,169,125,0.04) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(59,130,246,0.03) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 680px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .hero-icon {
+      width: 60px;
+      height: 60px;
+      background: linear-gradient(135deg, var(--gold), #a07845);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      margin: 0 auto 20px;
+      box-shadow: 0 8px 32px rgba(196,169,125,0.2);
+    }
+
+    .hero h1 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--gold-light);
+      margin-bottom: 8px;
+      letter-spacing: -0.01em;
+    }
+
+    .hero p {
+      color: var(--text-dim);
+      font-size: 16px;
+      font-weight: 300;
+      font-style: italic;
+      line-height: 1.6;
+    }
+
+    /* Step indicator */
+    .steps {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      margin-bottom: 32px;
+    }
+
+    .step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .step-dot {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      color: var(--text-muted);
+      transition: all 0.3s;
+      font-family: 'Playfair Display', serif;
+      font-weight: 600;
+    }
+
+    .step.active .step-dot {
+      border-color: var(--gold);
+      color: var(--gold);
+      box-shadow: 0 0 12px rgba(196,169,125,0.3);
+    }
+
+    .step.done .step-dot {
+      border-color: var(--green);
+      background: var(--green);
+      color: #0a2e14;
+    }
+
+    .step-label {
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .step.active .step-label { color: var(--gold-dim); }
+    .step.done .step-label { color: #4ade80; }
+
+    .step-line {
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+      min-width: 40px;
+      max-width: 80px;
+      margin-bottom: 22px;
+    }
+
+    /* Card */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      overflow: hidden;
+      display: none;
+    }
+
+    .card.active { display: block; }
+
+    .card-header {
+      padding: 24px 28px 20px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(135deg, rgba(196,169,125,0.06), transparent);
+    }
+
+    .card-header h2 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 22px;
+      color: var(--gold-light);
+      margin-bottom: 4px;
+    }
+
+    .card-header p {
+      font-size: 13px;
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+
+    .card-body {
+      padding: 24px 28px;
+    }
+
+    /* Form fields */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .form-grid .full { grid-column: 1 / -1; }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    label {
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--gold-dim);
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="url"],
+    input[type="password"],
+    select,
+    textarea {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 10px 13px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: 'Source Serif 4', Georgia, serif;
+      outline: none;
+      transition: border-color 0.15s, background 0.15s;
+      width: 100%;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--border-focus);
+      background: rgba(255,255,255,0.07);
+    }
+
+    textarea { resize: vertical; min-height: 80px; }
+
+    select option { background: var(--card); }
+
+    /* API provider selector */
+    .provider-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .provider-card {
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      text-align: center;
+    }
+
+    .provider-card:hover {
+      border-color: rgba(196,169,125,0.3);
+      background: rgba(196,169,125,0.04);
+    }
+
+    .provider-card.selected {
+      border-color: var(--gold);
+      background: rgba(196,169,125,0.08);
+    }
+
+    .provider-icon {
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+
+    .provider-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 15px;
+      color: var(--gold-light);
+      margin-bottom: 3px;
+    }
+
+    .provider-desc {
+      font-size: 11px;
+      color: var(--text-dim);
+      line-height: 1.4;
+    }
+
+    .api-key-hint {
+      font-size: 11.5px;
+      color: var(--text-dim);
+      margin-top: 8px;
+      line-height: 1.5;
+    }
+
+    .api-key-hint a {
+      color: var(--gold-dim);
+      text-decoration: underline;
+    }
+
+    /* Buttons */
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      padding: 16px 28px 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    .btn {
+      padding: 11px 24px;
+      border-radius: 10px;
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s, background 0.15s;
+      border: none;
+    }
+
+    .btn:active { transform: scale(0.97); }
+
+    .btn-primary {
+      background: var(--gold);
+      color: var(--bg);
+    }
+
+    .btn-primary:hover { background: var(--gold-light); }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover { color: var(--text); border-color: rgba(196,169,125,0.3); }
+
+    /* Test API section */
+    .test-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .test-btn {
+      padding: 8px 16px;
+      background: rgba(196,169,125,0.1);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--gold-dim);
+      font-family: inherit;
+      font-size: 13px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: color 0.15s;
+    }
+
+    .test-btn:hover { color: var(--gold); border-color: var(--border-focus); }
+
+    .test-result {
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 6px;
+    }
+
+    .test-result.ok { background: rgba(34,197,94,0.1); color: #4ade80; }
+    .test-result.fail { background: rgba(239,68,68,0.1); color: #f87171; }
+
+    /* Success state */
+    .success-view {
+      text-align: center;
+      padding: 48px 28px;
+    }
+
+    .success-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .success-view h2 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 26px;
+      color: var(--gold-light);
+      margin-bottom: 8px;
+    }
+
+    .success-view p {
+      color: var(--text-dim);
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+
+    .instructions {
+      background: rgba(196,169,125,0.06);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      text-align: left;
+      margin-bottom: 24px;
+    }
+
+    .instructions li {
+      font-size: 13px;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+      line-height: 1.5;
+      list-style: none;
+      padding-left: 4px;
+    }
+
+    .instructions li::before {
+      content: '→ ';
+      color: var(--gold-dim);
+    }
+
+    /* Divider */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 20px 0;
+    }
+
+    /* Danger zone */
+    .danger-zone {
+      margin-top: 16px;
+      padding: 14px;
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 10px;
+      background: rgba(239,68,68,0.04);
+    }
+
+    .danger-zone h3 {
+      font-size: 13px;
+      color: #f87171;
+      margin-bottom: 6px;
+    }
+
+    .danger-zone p {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    .btn-danger {
+      padding: 7px 14px;
+      background: transparent;
+      border: 1px solid rgba(239,68,68,0.4);
+      border-radius: 7px;
+      color: #f87171;
+      font-size: 12px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s;
+    }
+
+    .btn-danger:hover { background: rgba(239,68,68,0.1); }
+
+    .error-msg {
+      color: #f87171;
+      font-size: 12px;
+      margin-top: 6px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero">
+      <div class="hero-icon">✦</div>
+      <h1>FormFill AI</h1>
+      <p>Your intelligent job application assistant. Set up once, fill forever.</p>
+    </div>
+
+    <!-- Step indicators -->
+    <div class="steps">
+      <div class="step active" id="step1indicator">
+        <div class="step-dot">1</div>
+        <div class="step-label">Profile</div>
+      </div>
+      <div class="step-line"></div>
+      <div class="step" id="step2indicator">
+        <div class="step-dot">2</div>
+        <div class="step-label">AI Setup</div>
+      </div>
+      <div class="step-line"></div>
+      <div class="step" id="step3indicator">
+        <div class="step-dot">3</div>
+        <div class="step-label">Done</div>
+      </div>
+    </div>
+
+    <!-- Step 1: Profile -->
+    <div class="card active" id="step1">
+      <div class="card-header">
+        <h2>Your Profile</h2>
+        <p>This is stored locally on your machine and used to fill job applications. You can add more info anytime.</p>
+      </div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div class="field">
+            <label>First Name *</label>
+            <input type="text" id="firstName" placeholder="Jane" />
+          </div>
+          <div class="field">
+            <label>Last Name *</label>
+            <input type="text" id="lastName" placeholder="Smith" />
+          </div>
+          <div class="field">
+            <label>Email *</label>
+            <input type="email" id="email" placeholder="jane@example.com" class="full" />
+          </div>
+          <div class="field">
+            <label>Phone</label>
+            <input type="tel" id="phone" placeholder="+1 555 000 0000" />
+          </div>
+          <div class="field">
+            <label>City</label>
+            <input type="text" id="city" placeholder="San Francisco" />
+          </div>
+          <div class="field">
+            <label>State / Province</label>
+            <input type="text" id="state" placeholder="CA" />
+          </div>
+          <div class="field">
+            <label>Country</label>
+            <input type="text" id="country" placeholder="United States" />
+          </div>
+          <div class="field">
+            <label>ZIP / Postal Code</label>
+            <input type="text" id="zipCode" placeholder="94105" />
+          </div>
+          <div class="field full">
+            <label>LinkedIn URL</label>
+            <input type="url" id="linkedinUrl" placeholder="https://linkedin.com/in/..." />
+          </div>
+          <div class="field full">
+            <label>Portfolio / Website</label>
+            <input type="url" id="websiteUrl" placeholder="https://yoursite.com" />
+          </div>
+          <div class="field full">
+            <label>GitHub URL</label>
+            <input type="url" id="githubUrl" placeholder="https://github.com/..." />
+          </div>
+          <div class="field full">
+            <label>Current Job Title</label>
+            <input type="text" id="currentTitle" placeholder="Senior Software Engineer" />
+          </div>
+          <div class="field full">
+            <label>Current / Most Recent Company</label>
+            <input type="text" id="currentCompany" placeholder="Acme Corp" />
+          </div>
+          <div class="field">
+            <label>Years of Experience</label>
+            <input type="text" id="yearsExperience" placeholder="5" />
+          </div>
+          <div class="field">
+            <label>Desired Salary</label>
+            <input type="text" id="desiredSalary" placeholder="120000" />
+          </div>
+          <div class="field full">
+            <label>Skills (comma-separated)</label>
+            <input type="text" id="skills" placeholder="React, TypeScript, Node.js, Python" />
+          </div>
+          <div class="field full">
+            <label>Education — Degree</label>
+            <input type="text" id="educationDegree" placeholder="B.S. Computer Science" />
+          </div>
+          <div class="field full">
+            <label>Education — School</label>
+            <input type="text" id="educationSchool" placeholder="University of California, Berkeley" />
+          </div>
+          <div class="field">
+            <label>Graduation Year</label>
+            <input type="text" id="graduationYear" placeholder="2019" />
+          </div>
+          <div class="field">
+            <label>Authorized to Work In</label>
+            <input type="text" id="workAuthorization" placeholder="United States" />
+          </div>
+          <div class="field full">
+            <label>Professional Summary</label>
+            <textarea id="summary" placeholder="Brief summary of your background and what you're looking for..."></textarea>
+          </div>
+        </div>
+        <span class="error-msg" id="profileError">Please fill in at least First Name, Last Name, and Email.</span>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="nextToStep2">Continue →</button>
+      </div>
+    </div>
+
+    <!-- Step 2: AI Setup -->
+    <div class="card" id="step2">
+      <div class="card-header">
+        <h2>Connect Your AI</h2>
+        <p>FormFill AI uses your own API key. Your key is stored locally and never sent to any server other than the chosen AI provider.</p>
+      </div>
+      <div class="card-body">
+        <div class="provider-grid">
+          <div class="provider-card selected" data-provider="claude" id="providerClaude">
+            <div class="provider-icon">🟠</div>
+            <div class="provider-name">Claude</div>
+            <div class="provider-desc">Anthropic's API<br>claude-haiku-4-5 (fast, cheap)</div>
+          </div>
+          <div class="provider-card" data-provider="openai" id="providerOpenAI">
+            <div class="provider-icon">🟢</div>
+            <div class="provider-name">ChatGPT</div>
+            <div class="provider-desc">OpenAI's API<br>gpt-4o-mini (fast, cheap)</div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>API Key</label>
+          <input type="password" id="apiKey" placeholder="sk-ant-... or sk-..." />
+          <p class="api-key-hint" id="apiKeyHint">
+            Get your Claude API key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>
+          </p>
+        </div>
+
+        <div class="test-row">
+          <button class="test-btn" id="testApiBtn">Test Connection</button>
+          <div class="test-result" id="testResult" style="display:none"></div>
+        </div>
+
+        <span class="error-msg" id="apiError">Please enter a valid API key.</span>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" id="backToStep1">← Back</button>
+        <button class="btn btn-primary" id="saveAndFinish">Save & Finish ✓</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Done -->
+    <div class="card" id="step3">
+      <div class="success-view">
+        <div class="success-icon">✦</div>
+        <h2>You're all set!</h2>
+        <p>FormFill AI is ready to help you fill job applications faster.</p>
+        <div class="instructions">
+          <ul>
+            <li>Navigate to any job application page</li>
+            <li>Click the <strong>✦ Autofill</strong> button in the bottom-right corner</li>
+            <li>AI will fill what it knows; you'll be asked for the rest</li>
+            <li>New answers are saved and used automatically next time</li>
+          </ul>
+        </div>
+        <button class="btn btn-primary" id="closeSetup" style="width:100%">Start Autofilling →</button>
+      </div>
+
+      <hr class="divider">
+
+      <!-- Settings section (also shown here for returning users) -->
+      <div style="padding: 0 28px 28px">
+        <div class="section-label" style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold-dim);margin-bottom:14px;">
+          Settings
+        </div>
+        <div class="field" style="margin-bottom:12px">
+          <label>AI Provider</label>
+          <select id="settingsProvider">
+            <option value="claude">Claude (Anthropic)</option>
+            <option value="openai">ChatGPT (OpenAI)</option>
+          </select>
+        </div>
+        <div class="field" style="margin-bottom:16px">
+          <label>API Key</label>
+          <input type="password" id="settingsApiKey" placeholder="Enter new API key..." />
+        </div>
+        <button class="btn btn-secondary" id="updateSettings" style="width:100%">Update Settings</button>
+
+        <div class="danger-zone">
+          <h3>⚠ Danger Zone</h3>
+          <p>Clear all FormFill AI data including your profile and learned form mappings.</p>
+          <button class="btn-danger" id="clearDataBtn">Clear All Data</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="setup.js"></script>
+</body>
+</html>
