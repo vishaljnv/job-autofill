@@ -1,20 +1,18 @@
 // setup.js
 
-const PROFILE_FIELDS = [
-  'firstName', 'lastName', 'email', 'phone',
-  'city', 'state', 'country', 'zipCode',
-  'linkedinUrl', 'websiteUrl', 'githubUrl',
-  'currentTitle', 'currentCompany', 'yearsExperience',
-  'desiredSalary', 'skills',
-  'educationDegree', 'educationSchool', 'graduationYear',
-  'workAuthorization', 'summary'
-];
-
 let currentStep = 1;
 let selectedProvider = 'claude';
+let workExperienceCount = 0;
+let educationCount = 0;
 
 function sendBg(msg) {
-  return new Promise(resolve => chrome.runtime.sendMessage(msg, resolve));
+  return new Promise(resolve => {
+    try {
+      chrome.runtime.sendMessage(msg, resolve);
+    } catch (e) {
+      resolve({}); // fallback when running outside extension context
+    }
+  });
 }
 
 function setStep(n) {
@@ -30,25 +28,440 @@ function setStep(n) {
   }
 }
 
+// ─── Escape helpers ───────────────────────────────────────────────────────
+
+function escapeAttr(str) {
+  return String(str || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// ─── Preferred Name Toggle ────────────────────────────────────────────────
+
+function togglePreferredName(show) {
+  const fields = document.querySelectorAll('.preferred-name-field');
+  fields.forEach(f => f.style.display = show ? 'flex' : 'none');
+}
+
+// ─── Work Experience ──────────────────────────────────────────────────────
+
+function createWorkExperienceEntry(idx, data = {}) {
+  const div = document.createElement('div');
+  div.className = 'entry-card';
+  div.dataset.weIndex = idx;
+  div.innerHTML = `
+    <div class="entry-card-header">
+      <span class="entry-card-title">Experience #<span class="entry-num">${idx + 1}</span></span>
+      <button type="button" class="btn-remove">Remove</button>
+    </div>
+    <div class="form-grid">
+      <div class="field">
+        <label>Job Title</label>
+        <input type="text" id="we-title-${idx}" placeholder="Senior Software Engineer" value="${escapeAttr(data.title)}" />
+      </div>
+      <div class="field">
+        <label>Company Name</label>
+        <input type="text" id="we-company-${idx}" placeholder="Acme Corp" value="${escapeAttr(data.company)}" />
+      </div>
+      <div class="field full">
+        <label>Location</label>
+        <input type="text" id="we-location-${idx}" placeholder="San Francisco, CA" value="${escapeAttr(data.location)}" />
+      </div>
+      <div class="field">
+        <label>Start Date</label>
+        <input type="month" id="we-startDate-${idx}" value="${escapeAttr(data.startDate)}" />
+      </div>
+      <div class="field">
+        <label>End Date</label>
+        <input type="month" id="we-endDate-${idx}" value="${escapeAttr(data.endDate)}" ${data.isCurrent ? 'disabled' : ''} />
+        <div class="checkbox-row" style="margin-top:7px;">
+          <input type="checkbox" id="we-isCurrent-${idx}" ${data.isCurrent ? 'checked' : ''} />
+          <label for="we-isCurrent-${idx}" class="checkbox-label">Current job</label>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const checkbox = div.querySelector(`#we-isCurrent-${idx}`);
+  const endDateInput = div.querySelector(`#we-endDate-${idx}`);
+  checkbox.addEventListener('change', () => {
+    endDateInput.disabled = checkbox.checked;
+    if (checkbox.checked) endDateInput.value = '';
+  });
+
+  div.querySelector('.btn-remove').addEventListener('click', () => {
+    div.remove();
+    renumberEntries('we');
+  });
+
+  return div;
+}
+
+function createEducationEntry(idx, data = {}) {
+  const div = document.createElement('div');
+  div.className = 'entry-card';
+  div.dataset.eduIndex = idx;
+  div.innerHTML = `
+    <div class="entry-card-header">
+      <span class="entry-card-title">Education #<span class="entry-num">${idx + 1}</span></span>
+      <button type="button" class="btn-remove">Remove</button>
+    </div>
+    <div class="form-grid">
+      <div class="field full">
+        <label>Degree</label>
+        <input type="text" id="edu-degree-${idx}" placeholder="B.S. Computer Science" value="${escapeAttr(data.degree)}" />
+      </div>
+      <div class="field full">
+        <label>University / College</label>
+        <input type="text" id="edu-university-${idx}" placeholder="University of California, Berkeley" value="${escapeAttr(data.university)}" />
+      </div>
+      <div class="field">
+        <label>Location</label>
+        <input type="text" id="edu-location-${idx}" placeholder="Berkeley, CA" value="${escapeAttr(data.location)}" />
+      </div>
+      <div class="field">
+        <label>Country</label>
+        <input type="text" id="edu-country-${idx}" placeholder="United States" value="${escapeAttr(data.country)}" />
+      </div>
+      <div class="field">
+        <label>From Date</label>
+        <input type="month" id="edu-fromDate-${idx}" value="${escapeAttr(data.fromDate)}" />
+      </div>
+      <div class="field">
+        <label>To Date</label>
+        <input type="month" id="edu-toDate-${idx}" value="${escapeAttr(data.toDate)}" />
+      </div>
+    </div>
+  `;
+
+  div.querySelector('.btn-remove').addEventListener('click', () => {
+    div.remove();
+    renumberEntries('edu');
+  });
+
+  return div;
+}
+
+function renumberEntries(type) {
+  const selector = type === 'we' ? '[data-we-index]' : '[data-edu-index]';
+  document.querySelectorAll(selector).forEach((entry, i) => {
+    const numEl = entry.querySelector('.entry-num');
+    if (numEl) numEl.textContent = i + 1;
+  });
+}
+
+// ─── Profile Read / Write ─────────────────────────────────────────────────
+
 function readProfile() {
   const profile = {};
-  PROFILE_FIELDS.forEach(k => {
+
+  const flatFields = [
+    'firstName', 'lastName', 'email', 'phoneCountryCode', 'phone',
+    'city', 'state', 'country', 'zipCode',
+    'linkedinUrl', 'websiteUrl', 'githubUrl',
+    'yearsExperience', 'desiredSalary', 'skills', 'summary',
+    'gender', 'disabilityStatus', 'veteranStatus', 'requiresSponsorship', 'sponsorshipCountries',
+    'hasWorkPermit', 'govtExperience', 'hasNonCompete', 'isGovtOfficial'
+  ];
+
+  flatFields.forEach(k => {
     const el = document.getElementById(k);
     if (el && el.value.trim()) profile[k] = el.value.trim();
   });
+
+  // Preferred name
+  if (document.getElementById('hasPreferredName')?.checked) {
+    const pfn = document.getElementById('preferredFirstName')?.value.trim();
+    const pln = document.getElementById('preferredLastName')?.value.trim();
+    if (pfn) profile.preferredFirstName = pfn;
+    if (pln) profile.preferredLastName = pln;
+  }
+
+  // Work experience
+  const workExperience = [];
+  document.querySelectorAll('[data-we-index]').forEach(entry => {
+    const idx = entry.dataset.weIndex;
+    const title = document.getElementById(`we-title-${idx}`)?.value.trim() || '';
+    const company = document.getElementById(`we-company-${idx}`)?.value.trim() || '';
+    if (!title && !company) return;
+    workExperience.push({
+      title,
+      company,
+      location: document.getElementById(`we-location-${idx}`)?.value.trim() || '',
+      startDate: document.getElementById(`we-startDate-${idx}`)?.value || '',
+      endDate: document.getElementById(`we-endDate-${idx}`)?.value || '',
+      isCurrent: document.getElementById(`we-isCurrent-${idx}`)?.checked || false
+    });
+  });
+  if (workExperience.length > 0) profile.workExperience = workExperience;
+
+  // Education
+  const education = [];
+  document.querySelectorAll('[data-edu-index]').forEach(entry => {
+    const idx = entry.dataset.eduIndex;
+    const degree = document.getElementById(`edu-degree-${idx}`)?.value.trim() || '';
+    const university = document.getElementById(`edu-university-${idx}`)?.value.trim() || '';
+    if (!degree && !university) return;
+    education.push({
+      degree,
+      university,
+      location: document.getElementById(`edu-location-${idx}`)?.value.trim() || '',
+      country: document.getElementById(`edu-country-${idx}`)?.value.trim() || '',
+      fromDate: document.getElementById(`edu-fromDate-${idx}`)?.value || '',
+      toDate: document.getElementById(`edu-toDate-${idx}`)?.value || ''
+    });
+  });
+  if (education.length > 0) profile.education = education;
+
   return profile;
 }
 
 function loadProfile(profile) {
-  PROFILE_FIELDS.forEach(k => {
+  const flatFields = [
+    'firstName', 'lastName', 'email', 'phoneCountryCode', 'phone',
+    'city', 'state', 'country', 'zipCode',
+    'linkedinUrl', 'websiteUrl', 'githubUrl',
+    'yearsExperience', 'desiredSalary', 'skills', 'summary',
+    'gender', 'disabilityStatus', 'veteranStatus', 'requiresSponsorship', 'sponsorshipCountries',
+    'hasWorkPermit', 'govtExperience', 'hasNonCompete', 'isGovtOfficial'
+  ];
+
+  flatFields.forEach(k => {
     const el = document.getElementById(k);
-    if (el && profile[k]) el.value = profile[k];
+    if (el && profile[k] != null) el.value = profile[k];
+  });
+
+  // Preferred name
+  if (profile.preferredFirstName || profile.preferredLastName) {
+    const cb = document.getElementById('hasPreferredName');
+    if (cb) { cb.checked = true; togglePreferredName(true); }
+    if (profile.preferredFirstName) document.getElementById('preferredFirstName').value = profile.preferredFirstName;
+    if (profile.preferredLastName) document.getElementById('preferredLastName').value = profile.preferredLastName;
+  }
+
+  // Show sponsorship countries field if needed
+  if (profile.requiresSponsorship === 'Yes') {
+    document.getElementById('sponsorshipCountriesField').style.display = '';
+  }
+
+  // Work experience
+  const weContainer = document.getElementById('workExperienceContainer');
+  if (weContainer && profile.workExperience && profile.workExperience.length > 0) {
+    weContainer.innerHTML = '';
+    workExperienceCount = 0;
+    profile.workExperience.forEach(exp => {
+      weContainer.appendChild(createWorkExperienceEntry(workExperienceCount++, exp));
+    });
+  }
+
+  // Education
+  const eduContainer = document.getElementById('educationContainer');
+  if (eduContainer && profile.education && profile.education.length > 0) {
+    eduContainer.innerHTML = '';
+    educationCount = 0;
+    profile.education.forEach(edu => {
+      eduContainer.appendChild(createEducationEntry(educationCount++, edu));
+    });
+  }
+}
+
+// ─── Resume Import ────────────────────────────────────────────────────────
+
+function readFileAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
   });
 }
 
+function readFileAsArrayBuffer(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+async function extractDocxText(arrayBuffer) {
+  const bytes = new Uint8Array(arrayBuffer);
+  const decoder = new TextDecoder('utf-8');
+  let text = '';
+
+  let i = 0;
+  while (i < bytes.length - 30) {
+    // ZIP local file header: PK\x03\x04
+    if (bytes[i] === 0x50 && bytes[i+1] === 0x4B && bytes[i+2] === 0x03 && bytes[i+3] === 0x04) {
+      const compressionMethod = bytes[i+8] | (bytes[i+9] << 8);
+      const compressedSize = bytes[i+18] | (bytes[i+19] << 8) | (bytes[i+20] << 16) | (bytes[i+21] << 24);
+      const uncompressedSize = bytes[i+22] | (bytes[i+23] << 8) | (bytes[i+24] << 16) | (bytes[i+25] << 24);
+      const filenameLen = bytes[i+26] | (bytes[i+27] << 8);
+      const extraLen = bytes[i+28] | (bytes[i+29] << 8);
+      const dataStart = i + 30 + filenameLen + extraLen;
+
+      let filename = '';
+      try { filename = decoder.decode(bytes.slice(i + 30, i + 30 + filenameLen)); } catch (e) { /* skip */ }
+
+      if (filename === 'word/document.xml') {
+        const compressedData = bytes.slice(dataStart, dataStart + compressedSize);
+        if (compressionMethod === 0) {
+          text = decoder.decode(compressedData);
+        } else if (compressionMethod === 8) {
+          try {
+            const ds = new DecompressionStream('deflate-raw');
+            const writer = ds.writable.getWriter();
+            writer.write(compressedData);
+            writer.close();
+            const reader = ds.readable.getReader();
+            const chunks = [];
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              chunks.push(value);
+            }
+            const total = chunks.reduce((s, c) => s + c.length, 0);
+            const out = new Uint8Array(total);
+            let offset = 0;
+            for (const chunk of chunks) { out.set(chunk, offset); offset += chunk.length; }
+            text = decoder.decode(out);
+          } catch (e) {
+            console.error('[FormFill AI] DOCX decompression failed:', e);
+          }
+        }
+        break;
+      }
+
+      const advance = dataStart + Math.max(compressedSize, 0) - i;
+      i += advance > 0 ? advance : 1;
+    } else {
+      i++;
+    }
+  }
+
+  if (text) {
+    text = text
+      .replace(/<\/w:p>/gi, '\n')
+      .replace(/<w:br[^>]*>/gi, '\n')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+      .replace(/[ \t]+/g, ' ')
+      .replace(/\s*\n\s*/g, '\n')
+      .trim();
+  }
+
+  return text;
+}
+
+function populateFormFromResume(parsed) {
+  if (!parsed) return;
+
+  const flatFields = [
+    'firstName', 'lastName', 'email', 'phoneCountryCode', 'phone',
+    'city', 'state', 'country', 'zipCode',
+    'linkedinUrl', 'websiteUrl', 'githubUrl',
+    'yearsExperience', 'desiredSalary', 'skills', 'summary',
+    'gender', 'disabilityStatus', 'veteranStatus', 'requiresSponsorship', 'sponsorshipCountries',
+    'hasWorkPermit', 'govtExperience', 'hasNonCompete', 'isGovtOfficial'
+  ];
+
+  flatFields.forEach(k => {
+    if (parsed[k] != null) {
+      const el = document.getElementById(k);
+      if (el) el.value = parsed[k];
+    }
+  });
+
+  if (parsed.preferredFirstName || parsed.preferredLastName) {
+    const cb = document.getElementById('hasPreferredName');
+    if (cb) { cb.checked = true; togglePreferredName(true); }
+    if (parsed.preferredFirstName) document.getElementById('preferredFirstName').value = parsed.preferredFirstName;
+    if (parsed.preferredLastName) document.getElementById('preferredLastName').value = parsed.preferredLastName;
+  }
+
+  if (parsed.workExperience && parsed.workExperience.length > 0) {
+    const container = document.getElementById('workExperienceContainer');
+    container.innerHTML = '';
+    workExperienceCount = 0;
+    parsed.workExperience.forEach(exp => {
+      container.appendChild(createWorkExperienceEntry(workExperienceCount++, exp));
+    });
+  }
+
+  if (parsed.education && parsed.education.length > 0) {
+    const container = document.getElementById('educationContainer');
+    container.innerHTML = '';
+    educationCount = 0;
+    parsed.education.forEach(edu => {
+      container.appendChild(createEducationEntry(educationCount++, edu));
+    });
+  }
+}
+
+async function handleResumeImport(file) {
+  if (!file) return;
+
+  const statusEl = document.getElementById('resumeStatus');
+  const fileNameEl = document.getElementById('resumeFileName');
+
+  fileNameEl.textContent = file.name;
+  statusEl.textContent = 'Parsing resume with AI...';
+  statusEl.className = 'resume-status loading';
+
+  try {
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    const isDocx = file.name.toLowerCase().endsWith('.docx') ||
+      file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+    if (!isPdf && !isDocx) {
+      throw new Error('Unsupported file type. Please use a PDF or .docx file.');
+    }
+
+    let result;
+    if (isPdf) {
+      const base64 = await readFileAsBase64(file);
+      result = await sendBg({ type: 'AI_PARSE_RESUME', fileType: 'pdf', fileData: base64 });
+    } else {
+      const arrayBuffer = await readFileAsArrayBuffer(file);
+      const textContent = await extractDocxText(arrayBuffer);
+      if (!textContent || textContent.length < 30) throw new Error('Could not extract text from document. Make sure it is a valid .docx file.');
+      result = await sendBg({ type: 'AI_PARSE_RESUME', fileType: 'docx', textContent });
+    }
+
+    if (result.error) throw new Error(result.error);
+    if (!result.profile) throw new Error('No data returned from AI.');
+
+    populateFormFromResume(result.profile);
+    statusEl.textContent = '✓ Resume imported! Review and edit the fields below.';
+    statusEl.className = 'resume-status ok';
+
+  } catch (err) {
+    statusEl.textContent = `✗ ${err.message}`;
+    statusEl.className = 'resume-status fail';
+    console.error('[FormFill AI] Resume import error:', err);
+  }
+}
+
+// ─── Provider UI ──────────────────────────────────────────────────────────
+
+function updateProviderUI(provider) {
+  document.getElementById('providerClaude').classList.toggle('selected', provider === 'claude');
+  document.getElementById('providerOpenAI').classList.toggle('selected', provider === 'openai');
+}
+
+function updateApiKeyHint(key) {
+  if (key.startsWith('sk-ant')) {
+    selectedProvider = 'claude';
+    updateProviderUI('claude');
+  } else if (key.startsWith('sk-') && !key.startsWith('sk-ant')) {
+    selectedProvider = 'openai';
+    updateProviderUI('openai');
+  }
+}
+
+// ─── API Key Test ─────────────────────────────────────────────────────────
+
 async function testApiKey() {
   const key = document.getElementById('apiKey').value.trim();
-  const provider = selectedProvider;
   const resultEl = document.getElementById('testResult');
   const btn = document.getElementById('testApiBtn');
 
@@ -63,52 +476,14 @@ async function testApiKey() {
   btn.disabled = true;
   resultEl.style.display = 'none';
 
-  try {
-    let ok = false;
+  // Route through background service worker to avoid CORS restrictions
+  const { ok, error } = await sendBg({ type: 'TEST_CONNECTION', provider: selectedProvider, apiKey: key });
 
-    if (provider === 'claude') {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': key,
-          'anthropic-version': '2023-06-01'
-        },
-        body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 10,
-          messages: [{ role: 'user', content: 'hi' }]
-        })
-      });
-      ok = res.status === 200;
-      if (!ok) {
-        const err = await res.json();
-        throw new Error(err.error?.message || `HTTP ${res.status}`);
-      }
-    } else {
-      const res = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${key}`
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          max_tokens: 5,
-          messages: [{ role: 'user', content: 'hi' }]
-        })
-      });
-      ok = res.status === 200;
-      if (!ok) {
-        const err = await res.json();
-        throw new Error(err.error?.message || `HTTP ${res.status}`);
-      }
-    }
-
+  if (ok) {
     resultEl.textContent = '✓ Connection successful!';
     resultEl.className = 'test-result ok';
-  } catch (err) {
-    resultEl.textContent = `✗ ${err.message}`;
+  } else {
+    resultEl.textContent = `✗ ${error || 'Connection failed'}`;
     resultEl.className = 'test-result fail';
   }
 
@@ -117,10 +492,20 @@ async function testApiKey() {
   btn.disabled = false;
 }
 
+// ─── Init ─────────────────────────────────────────────────────────────────
+
 async function init() {
+  // Seed default entries
+  const weContainer = document.getElementById('workExperienceContainer');
+  weContainer.appendChild(createWorkExperienceEntry(workExperienceCount++));
+
+  const eduContainer = document.getElementById('educationContainer');
+  eduContainer.appendChild(createEducationEntry(educationCount++));
+  eduContainer.appendChild(createEducationEntry(educationCount++));
+
   // Load existing settings
   const settings = await sendBg({ type: 'GET_SETTINGS' });
-  
+
   if (settings.userProfile) loadProfile(settings.userProfile);
   if (settings.aiApiKey) {
     document.getElementById('apiKey').value = settings.aiApiKey;
@@ -137,64 +522,102 @@ async function init() {
     setStep(3);
   }
 
-  // Provider selection
+  // Preferred name toggle
+  document.getElementById('hasPreferredName').addEventListener('change', e => {
+    togglePreferredName(e.target.checked);
+  });
+
+  // Sponsorship countries conditional field
+  document.getElementById('requiresSponsorship').addEventListener('change', e => {
+    document.getElementById('sponsorshipCountriesField').style.display = e.target.value === 'Yes' ? '' : 'none';
+  });
+
+  // Add Work Experience
+  document.getElementById('addWorkExperience').addEventListener('click', () => {
+    weContainer.appendChild(createWorkExperienceEntry(workExperienceCount++));
+  });
+
+  // Add Education
+  document.getElementById('addEducation').addEventListener('click', () => {
+    eduContainer.appendChild(createEducationEntry(educationCount++));
+  });
+
+  // Resume import
+  const resumeInput = document.getElementById('resumeFileInput');
+  document.getElementById('chooseResumeBtn').addEventListener('click', () => resumeInput.click());
+  resumeInput.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (file) handleResumeImport(file);
+  });
+
+  // Provider selection + update console button link
+  function updateConsoleBtn() {
+    const btn = document.getElementById('openConsoleBtn');
+    const desc = document.getElementById('keyStepDesc');
+    if (selectedProvider === 'claude') {
+      btn.textContent = 'Open Anthropic Console →';
+      btn.onclick = () => window.open('https://console.anthropic.com/settings/keys', '_blank');
+      desc.textContent = 'Sign into the Anthropic Console, create a new API key, and copy it. It only takes a minute.';
+    } else {
+      btn.textContent = 'Open OpenAI Platform →';
+      btn.onclick = () => window.open('https://platform.openai.com/api-keys', '_blank');
+      desc.textContent = 'Sign into the OpenAI Platform, create a new secret key, and copy it. It only takes a minute.';
+    }
+  }
+  updateConsoleBtn();
+
   ['Claude', 'OpenAI'].forEach(name => {
-    const id = `provider${name}`;
-    document.getElementById(id).addEventListener('click', () => {
+    document.getElementById(`provider${name}`).addEventListener('click', () => {
       selectedProvider = name === 'Claude' ? 'claude' : 'openai';
       updateProviderUI(selectedProvider);
+      updateConsoleBtn();
     });
   });
 
-  // Navigation
-  document.getElementById('nextToStep2').addEventListener('click', () => {
-    const profile = readProfile();
-    if (!profile.firstName || !profile.lastName || !profile.email) {
-      document.getElementById('profileError').style.display = 'block';
-      return;
-    }
-    document.getElementById('profileError').style.display = 'none';
-    setStep(2);
-  });
-
-  document.getElementById('backToStep1').addEventListener('click', () => setStep(1));
-
-  document.getElementById('testApiBtn').addEventListener('click', testApiKey);
-
-  document.getElementById('saveAndFinish').addEventListener('click', async () => {
+  // Step 1 → Step 2: validate + save API key, then show profile
+  document.getElementById('connectAndContinue').addEventListener('click', async () => {
     const key = document.getElementById('apiKey').value.trim();
     document.getElementById('apiError').style.display = 'none';
-
     if (!key) {
       document.getElementById('apiError').style.display = 'block';
       return;
     }
+    // Save API key immediately so resume import works on step 2
+    await sendBg({ type: 'SAVE_SETTINGS', provider: selectedProvider, apiKey: key, profile: settings.userProfile || {} });
+    setStep(2);
+  });
 
+  document.getElementById('backToStep1').addEventListener('click', () => setStep(1));
+  document.getElementById('editProfileBtn').addEventListener('click', () => setStep(2));
+
+  document.getElementById('testApiBtn').addEventListener('click', testApiKey);
+
+  // Step 2 → Step 3: validate profile + save
+  document.getElementById('saveAndFinish').addEventListener('click', async () => {
     const profile = readProfile();
-    await sendBg({
-      type: 'SAVE_SETTINGS',
-      provider: selectedProvider,
-      apiKey: key,
-      profile: profile
-    });
-
+    if (!profile.firstName || !profile.lastName || !profile.email) {
+      document.getElementById('profileError').style.display = 'block';
+      document.getElementById('profileError').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    document.getElementById('profileError').style.display = 'none';
+    const key = document.getElementById('apiKey').value.trim() || settings.aiApiKey;
+    await sendBg({ type: 'SAVE_SETTINGS', provider: selectedProvider, apiKey: key, profile });
     setStep(3);
   });
 
-  document.getElementById('closeSetup').addEventListener('click', () => {
-    window.close();
-  });
+  document.getElementById('closeSetup').addEventListener('click', () => window.close());
 
   // Settings updates
   document.getElementById('updateSettings').addEventListener('click', async () => {
     const provider = document.getElementById('settingsProvider').value;
     const key = document.getElementById('settingsApiKey').value.trim();
-    const profile = settings.userProfile || {};
+    const profile = readProfile();
     await sendBg({
       type: 'SAVE_SETTINGS',
-      provider: provider,
+      provider,
       apiKey: key || settings.aiApiKey,
-      profile: profile
+      profile: Object.keys(profile).length > 0 ? profile : (settings.userProfile || {})
     });
     alert('Settings saved!');
   });
@@ -207,32 +630,8 @@ async function init() {
     }
   });
 
-  // API key hint
-  document.getElementById('apiKey').addEventListener('input', (e) => {
-    updateApiKeyHint(e.target.value);
-  });
-}
-
-function updateProviderUI(provider) {
-  document.getElementById('providerClaude').classList.toggle('selected', provider === 'claude');
-  document.getElementById('providerOpenAI').classList.toggle('selected', provider === 'openai');
-  
-  const hint = document.getElementById('apiKeyHint');
-  if (provider === 'claude') {
-    hint.innerHTML = 'Get your Claude API key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>';
-  } else {
-    hint.innerHTML = 'Get your OpenAI API key at <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com/api-keys</a>';
-  }
-}
-
-function updateApiKeyHint(key) {
-  if (key.startsWith('sk-ant')) {
-    selectedProvider = 'claude';
-    updateProviderUI('claude');
-  } else if (key.startsWith('sk-') && !key.startsWith('sk-ant')) {
-    selectedProvider = 'openai';
-    updateProviderUI('openai');
-  }
+  // API key hint auto-detect
+  document.getElementById('apiKey').addEventListener('input', e => updateApiKeyHint(e.target.value));
 }
 
 init();

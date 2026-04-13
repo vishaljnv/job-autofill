@@ -35,12 +35,11 @@
       padding: 40px 20px 60px;
     }
 
-    /* Ambient background */
     body::before {
       content: '';
       position: fixed;
       inset: 0;
-      background: 
+      background:
         radial-gradient(ellipse 80% 50% at 20% 20%, rgba(196,169,125,0.04) 0%, transparent 60%),
         radial-gradient(ellipse 60% 40% at 80% 80%, rgba(59,130,246,0.03) 0%, transparent 60%);
       pointer-events: none;
@@ -49,7 +48,7 @@
 
     .container {
       width: 100%;
-      max-width: 680px;
+      max-width: 720px;
       position: relative;
       z-index: 1;
     }
@@ -61,13 +60,10 @@
     }
 
     .hero-icon {
-      width: 60px;
-      height: 60px;
+      width: 60px; height: 60px;
       background: linear-gradient(135deg, var(--gold), #a07845);
       border-radius: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       font-size: 26px;
       margin: 0 auto 20px;
       box-shadow: 0 8px 32px rgba(196,169,125,0.2);
@@ -75,137 +71,71 @@
 
     .hero h1 {
       font-family: 'Playfair Display', Georgia, serif;
-      font-size: 32px;
-      font-weight: 700;
+      font-size: 32px; font-weight: 700;
       color: var(--gold-light);
-      margin-bottom: 8px;
-      letter-spacing: -0.01em;
+      margin-bottom: 8px; letter-spacing: -0.01em;
     }
 
     .hero p {
-      color: var(--text-dim);
-      font-size: 16px;
-      font-weight: 300;
-      font-style: italic;
-      line-height: 1.6;
+      color: var(--text-dim); font-size: 16px;
+      font-weight: 300; font-style: italic; line-height: 1.6;
     }
 
     /* Step indicator */
     .steps {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0;
-      margin-bottom: 32px;
+      display: flex; align-items: center; justify-content: center;
+      gap: 0; margin-bottom: 32px;
     }
 
-    .step {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-    }
+    .step { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 
     .step-dot {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
+      width: 32px; height: 32px; border-radius: 50%;
       border: 2px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 13px;
-      color: var(--text-muted);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; color: var(--text-muted);
       transition: all 0.3s;
-      font-family: 'Playfair Display', serif;
-      font-weight: 600;
+      font-family: 'Playfair Display', serif; font-weight: 600;
     }
 
-    .step.active .step-dot {
-      border-color: var(--gold);
-      color: var(--gold);
-      box-shadow: 0 0 12px rgba(196,169,125,0.3);
-    }
+    .step.active .step-dot { border-color: var(--gold); color: var(--gold); box-shadow: 0 0 12px rgba(196,169,125,0.3); }
+    .step.done .step-dot { border-color: var(--green); background: var(--green); color: #0a2e14; }
 
-    .step.done .step-dot {
-      border-color: var(--green);
-      background: var(--green);
-      color: #0a2e14;
-    }
-
-    .step-label {
-      font-size: 10px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--text-muted);
-    }
-
+    .step-label { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
     .step.active .step-label { color: var(--gold-dim); }
     .step.done .step-label { color: #4ade80; }
 
-    .step-line {
-      flex: 1;
-      height: 1px;
-      background: var(--border);
-      min-width: 40px;
-      max-width: 80px;
-      margin-bottom: 22px;
-    }
+    .step-line { flex: 1; height: 1px; background: var(--border); min-width: 40px; max-width: 80px; margin-bottom: 22px; }
 
     /* Card */
     .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      overflow: hidden;
-      display: none;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 18px; overflow: hidden; display: none;
     }
-
     .card.active { display: block; }
 
     .card-header {
-      padding: 24px 28px 20px;
-      border-bottom: 1px solid var(--border);
+      padding: 24px 28px 20px; border-bottom: 1px solid var(--border);
       background: linear-gradient(135deg, rgba(196,169,125,0.06), transparent);
     }
 
     .card-header h2 {
       font-family: 'Playfair Display', Georgia, serif;
-      font-size: 22px;
-      color: var(--gold-light);
-      margin-bottom: 4px;
+      font-size: 22px; color: var(--gold-light); margin-bottom: 4px;
     }
 
-    .card-header p {
-      font-size: 13px;
-      color: var(--text-dim);
-      line-height: 1.5;
-    }
+    .card-header p { font-size: 13px; color: var(--text-dim); line-height: 1.5; }
 
-    .card-body {
-      padding: 24px 28px;
-    }
+    .card-body { padding: 24px 28px; }
 
-    /* Form fields */
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-    }
-
+    /* Form grid */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     .form-grid .full { grid-column: 1 / -1; }
 
-    .field {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-    }
+    .field { display: flex; flex-direction: column; gap: 5px; }
 
     label {
-      font-size: 11px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--gold-dim);
+      font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gold-dim);
     }
 
     input[type="text"],
@@ -213,251 +143,284 @@
     input[type="tel"],
     input[type="url"],
     input[type="password"],
+    input[type="month"],
     select,
     textarea {
       background: rgba(255,255,255,0.04);
-      border: 1px solid var(--border);
-      border-radius: 9px;
-      padding: 10px 13px;
-      color: var(--text);
-      font-size: 14px;
-      font-family: 'Source Serif 4', Georgia, serif;
-      outline: none;
-      transition: border-color 0.15s, background 0.15s;
-      width: 100%;
+      border: 1px solid var(--border); border-radius: 9px;
+      padding: 10px 13px; color: var(--text);
+      font-size: 14px; font-family: 'Source Serif 4', Georgia, serif;
+      outline: none; transition: border-color 0.15s, background 0.15s; width: 100%;
     }
 
     input:focus, select:focus, textarea:focus {
-      border-color: var(--border-focus);
-      background: rgba(255,255,255,0.07);
+      border-color: var(--border-focus); background: rgba(255,255,255,0.07);
     }
 
     textarea { resize: vertical; min-height: 80px; }
-
     select option { background: var(--card); }
 
-    /* API provider selector */
-    .provider-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 18px;
-    }
-
-    .provider-card {
-      border: 2px solid var(--border);
-      border-radius: 12px;
-      padding: 16px;
-      cursor: pointer;
-      transition: border-color 0.2s, background 0.2s;
-      text-align: center;
-    }
-
-    .provider-card:hover {
-      border-color: rgba(196,169,125,0.3);
-      background: rgba(196,169,125,0.04);
-    }
-
-    .provider-card.selected {
-      border-color: var(--gold);
-      background: rgba(196,169,125,0.08);
-    }
-
-    .provider-icon {
-      font-size: 28px;
-      margin-bottom: 8px;
-    }
-
-    .provider-name {
+    /* Section label inside form */
+    .section-label {
+      grid-column: 1 / -1;
       font-family: 'Playfair Display', serif;
-      font-size: 15px;
-      color: var(--gold-light);
-      margin-bottom: 3px;
+      font-size: 13px; font-weight: 600;
+      color: var(--gold);
+      padding: 8px 0 4px;
+      border-bottom: 1px solid var(--border);
+      margin-top: 6px;
+      letter-spacing: 0.02em;
     }
 
-    .provider-desc {
-      font-size: 11px;
-      color: var(--text-dim);
-      line-height: 1.4;
+    /* Resume import */
+    .resume-import {
+      grid-column: 1 / -1;
+      background: rgba(196,169,125,0.04);
+      border: 1px dashed rgba(196,169,125,0.3);
+      border-radius: 12px;
+      padding: 16px 20px;
     }
 
-    .api-key-hint {
-      font-size: 11.5px;
-      color: var(--text-dim);
-      margin-top: 8px;
-      line-height: 1.5;
+    .resume-import-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 14px; font-weight: 600;
+      color: var(--gold); margin-bottom: 4px;
     }
 
-    .api-key-hint a {
-      color: var(--gold-dim);
-      text-decoration: underline;
-    }
+    .resume-import-desc { font-size: 12px; color: var(--text-dim); margin-bottom: 12px; line-height: 1.5; }
 
-    /* Buttons */
-    .btn-row {
-      display: flex;
-      gap: 10px;
-      justify-content: flex-end;
-      padding: 16px 28px 20px;
-      border-top: 1px solid var(--border);
-    }
+    .resume-import-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
-    .btn {
-      padding: 11px 24px;
-      border-radius: 10px;
-      font-family: 'Playfair Display', Georgia, serif;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: transform 0.15s, background 0.15s;
-      border: none;
-    }
-
-    .btn:active { transform: scale(0.97); }
-
-    .btn-primary {
-      background: var(--gold);
-      color: var(--bg);
-    }
-
-    .btn-primary:hover { background: var(--gold-light); }
-
-    .btn-secondary {
-      background: transparent;
-      color: var(--text-dim);
-      border: 1px solid var(--border);
-    }
-
-    .btn-secondary:hover { color: var(--text); border-color: rgba(196,169,125,0.3); }
-
-    /* Test API section */
-    .test-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-top: 14px;
-    }
-
-    .test-btn {
+    .btn-import {
       padding: 8px 16px;
       background: rgba(196,169,125,0.1);
-      border: 1px solid var(--border);
-      border-radius: 8px;
+      border: 1px solid var(--border); border-radius: 8px;
       color: var(--gold-dim);
-      font-family: inherit;
-      font-size: 13px;
+      font-family: inherit; font-size: 13px;
+      cursor: pointer; white-space: nowrap; transition: color 0.15s;
+    }
+    .btn-import:hover { color: var(--gold); border-color: var(--border-focus); }
+
+    #resumeFileInput { display: none; }
+
+    .resume-file-name { font-size: 12px; color: var(--text-muted); font-style: italic; }
+
+    .resume-status {
+      font-size: 12px; padding: 5px 10px; border-radius: 6px; display: none;
+    }
+    .resume-status.loading { display: inline; color: var(--gold-dim); }
+    .resume-status.ok { display: inline; background: rgba(34,197,94,0.1); color: #4ade80; }
+    .resume-status.fail { display: inline; background: rgba(239,68,68,0.1); color: #f87171; }
+
+    /* Checkbox row */
+    .checkbox-row {
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    .checkbox-row input[type="checkbox"] {
+      width: auto; min-width: 0; flex-shrink: 0;
+      padding: 0; margin: 0; cursor: pointer;
+    }
+
+    .checkbox-label {
+      text-transform: none; letter-spacing: 0;
+      font-size: 12px; color: var(--text-dim);
       cursor: pointer;
-      white-space: nowrap;
-      transition: color 0.15s;
     }
 
-    .test-btn:hover { color: var(--gold); border-color: var(--border-focus); }
+    /* Phone row */
+    .phone-row { display: flex; gap: 8px; }
 
-    .test-result {
-      font-size: 12px;
-      padding: 6px 10px;
-      border-radius: 6px;
+    .country-code-select {
+      width: auto; min-width: 110px; flex-shrink: 0;
+      font-size: 13px;
     }
 
-    .test-result.ok { background: rgba(34,197,94,0.1); color: #4ade80; }
-    .test-result.fail { background: rgba(239,68,68,0.1); color: #f87171; }
+    .phone-row input { flex: 1; }
 
-    /* Success state */
-    .success-view {
-      text-align: center;
-      padding: 48px 28px;
-    }
-
-    .success-icon {
-      font-size: 48px;
-      margin-bottom: 16px;
-    }
-
-    .success-view h2 {
-      font-family: 'Playfair Display', Georgia, serif;
-      font-size: 26px;
-      color: var(--gold-light);
-      margin-bottom: 8px;
-    }
-
-    .success-view p {
-      color: var(--text-dim);
-      font-size: 14px;
-      line-height: 1.6;
-      margin-bottom: 24px;
-    }
-
-    .instructions {
-      background: rgba(196,169,125,0.06);
+    /* Entry cards (work experience, education) */
+    .entry-card {
+      background: rgba(255,255,255,0.02);
       border: 1px solid var(--border);
-      border-radius: 10px;
+      border-radius: 12px;
       padding: 16px;
-      text-align: left;
-      margin-bottom: 24px;
-    }
-
-    .instructions li {
-      font-size: 13px;
-      color: var(--text-dim);
-      margin-bottom: 6px;
-      line-height: 1.5;
-      list-style: none;
-      padding-left: 4px;
-    }
-
-    .instructions li::before {
-      content: '→ ';
-      color: var(--gold-dim);
-    }
-
-    /* Divider */
-    .divider {
-      border: none;
-      border-top: 1px solid var(--border);
-      margin: 20px 0;
-    }
-
-    /* Danger zone */
-    .danger-zone {
-      margin-top: 16px;
-      padding: 14px;
-      border: 1px solid rgba(239,68,68,0.2);
-      border-radius: 10px;
-      background: rgba(239,68,68,0.04);
-    }
-
-    .danger-zone h3 {
-      font-size: 13px;
-      color: #f87171;
-      margin-bottom: 6px;
-    }
-
-    .danger-zone p {
-      font-size: 12px;
-      color: var(--text-muted);
       margin-bottom: 10px;
     }
 
-    .btn-danger {
-      padding: 7px 14px;
-      background: transparent;
-      border: 1px solid rgba(239,68,68,0.4);
-      border-radius: 7px;
-      color: #f87171;
-      font-size: 12px;
-      cursor: pointer;
-      font-family: inherit;
-      transition: background 0.15s;
+    .entry-card:last-child { margin-bottom: 0; }
+
+    .entry-card-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 14px;
     }
 
+    .entry-card-title {
+      font-size: 11px; letter-spacing: 0.07em;
+      text-transform: uppercase; color: var(--gold-dim);
+    }
+
+    .btn-remove {
+      background: transparent;
+      border: 1px solid rgba(239,68,68,0.3); border-radius: 6px;
+      color: #f87171; font-size: 11px; padding: 3px 10px;
+      cursor: pointer; font-family: inherit; transition: background 0.15s;
+    }
+    .btn-remove:hover { background: rgba(239,68,68,0.1); }
+
+    /* Container for entries */
+    #workExperienceContainer,
+    #educationContainer {
+      grid-column: 1 / -1;
+    }
+
+    /* Add entry button */
+    .btn-add-entry {
+      grid-column: 1 / -1;
+      background: transparent;
+      border: 1px dashed rgba(196,169,125,0.25); border-radius: 9px;
+      color: var(--gold-dim); font-size: 13px;
+      padding: 10px; cursor: pointer;
+      font-family: inherit; text-align: center;
+      transition: color 0.15s, border-color 0.15s;
+      margin-top: 2px;
+    }
+    .btn-add-entry:hover { color: var(--gold); border-color: rgba(196,169,125,0.5); }
+
+    /* Preferred name fields */
+    .preferred-name-field { display: none; }
+
+    /* Q&A section */
+    .qa-note {
+      grid-column: 1 / -1;
+      font-size: 12px; color: var(--text-muted); font-style: italic;
+      line-height: 1.5; margin-bottom: 2px;
+    }
+
+    .qa-label {
+      text-transform: none; letter-spacing: 0;
+      font-size: 12px; color: var(--text-dim); line-height: 1.5;
+      margin-bottom: 2px;
+    }
+
+    /* API provider selector */
+    .provider-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 12px; margin-bottom: 18px;
+    }
+
+    .provider-card {
+      border: 2px solid var(--border); border-radius: 12px;
+      padding: 16px; cursor: pointer;
+      transition: border-color 0.2s, background 0.2s; text-align: center;
+    }
+    .provider-card:hover { border-color: rgba(196,169,125,0.3); background: rgba(196,169,125,0.04); }
+    .provider-card.selected { border-color: var(--gold); background: rgba(196,169,125,0.08); }
+
+    .provider-icon { font-size: 28px; margin-bottom: 8px; }
+    .provider-name { font-family: 'Playfair Display', serif; font-size: 15px; color: var(--gold-light); margin-bottom: 3px; }
+    .provider-desc { font-size: 11px; color: var(--text-dim); line-height: 1.4; }
+
+    .api-key-hint { font-size: 11.5px; color: var(--text-dim); margin-top: 8px; line-height: 1.5; }
+    .api-key-hint a { color: var(--gold-dim); text-decoration: underline; }
+
+    /* Get API key steps */
+    .key-steps {
+      display: flex; flex-direction: column; gap: 12px;
+      margin-bottom: 20px;
+      background: rgba(196,169,125,0.04);
+      border: 1px solid var(--border); border-radius: 12px;
+      padding: 16px;
+    }
+
+    .key-step { display: flex; gap: 12px; align-items: flex-start; }
+
+    .key-step-num {
+      width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+      background: rgba(196,169,125,0.15); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; color: var(--gold); font-family: 'Playfair Display', serif; font-weight: 600;
+      margin-top: 1px;
+    }
+
+    .key-step-title { font-size: 13px; color: var(--gold-light); font-weight: 600; margin-bottom: 3px; }
+    .key-step-desc { font-size: 12px; color: var(--text-dim); line-height: 1.4; margin-bottom: 8px; }
+
+    .btn-get-key {
+      display: inline-block;
+      padding: 7px 14px;
+      background: rgba(196,169,125,0.12);
+      border: 1px solid rgba(196,169,125,0.35); border-radius: 8px;
+      color: var(--gold); font-size: 12px; font-family: inherit;
+      cursor: pointer; transition: background 0.15s;
+      text-decoration: none;
+    }
+    .btn-get-key:hover { background: rgba(196,169,125,0.22); }
+
+    /* Buttons */
+    .btn-row {
+      display: flex; gap: 10px; justify-content: flex-end;
+      padding: 16px 28px 20px; border-top: 1px solid var(--border);
+    }
+
+    .btn {
+      padding: 11px 24px; border-radius: 10px;
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: transform 0.15s, background 0.15s; border: none;
+    }
+    .btn:active { transform: scale(0.97); }
+
+    .btn-primary { background: var(--gold); color: var(--bg); }
+    .btn-primary:hover { background: var(--gold-light); }
+
+    .btn-secondary {
+      background: transparent; color: var(--text-dim); border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { color: var(--text); border-color: rgba(196,169,125,0.3); }
+
+    /* Test API */
+    .test-row { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+
+    .test-btn {
+      padding: 8px 16px; background: rgba(196,169,125,0.1);
+      border: 1px solid var(--border); border-radius: 8px;
+      color: var(--gold-dim); font-family: inherit;
+      font-size: 13px; cursor: pointer; white-space: nowrap; transition: color 0.15s;
+    }
+    .test-btn:hover { color: var(--gold); border-color: var(--border-focus); }
+
+    .test-result { font-size: 12px; padding: 6px 10px; border-radius: 6px; }
+    .test-result.ok { background: rgba(34,197,94,0.1); color: #4ade80; }
+    .test-result.fail { background: rgba(239,68,68,0.1); color: #f87171; }
+
+    /* Success */
+    .success-view { text-align: center; padding: 48px 28px; }
+    .success-icon { font-size: 48px; margin-bottom: 16px; }
+    .success-view h2 { font-family: 'Playfair Display', Georgia, serif; font-size: 26px; color: var(--gold-light); margin-bottom: 8px; }
+    .success-view p { color: var(--text-dim); font-size: 14px; line-height: 1.6; margin-bottom: 24px; }
+
+    .instructions {
+      background: rgba(196,169,125,0.06); border: 1px solid var(--border);
+      border-radius: 10px; padding: 16px; text-align: left; margin-bottom: 24px;
+    }
+    .instructions li { font-size: 13px; color: var(--text-dim); margin-bottom: 6px; line-height: 1.5; list-style: none; padding-left: 4px; }
+    .instructions li::before { content: '→ '; color: var(--gold-dim); }
+
+    .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+    .danger-zone { margin-top: 16px; padding: 14px; border: 1px solid rgba(239,68,68,0.2); border-radius: 10px; background: rgba(239,68,68,0.04); }
+    .danger-zone h3 { font-size: 13px; color: #f87171; margin-bottom: 6px; }
+    .danger-zone p { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; }
+
+    .btn-danger {
+      padding: 7px 14px; background: transparent;
+      border: 1px solid rgba(239,68,68,0.4); border-radius: 7px;
+      color: #f87171; font-size: 12px; cursor: pointer;
+      font-family: inherit; transition: background 0.15s;
+    }
     .btn-danger:hover { background: rgba(239,68,68,0.1); }
 
-    .error-msg {
-      color: #f87171;
-      font-size: 12px;
-      margin-top: 6px;
-      display: none;
-    }
+    .error-msg { color: #f87171; font-size: 12px; margin-top: 6px; display: none; }
   </style>
 </head>
 <body>
@@ -472,12 +435,12 @@
     <div class="steps">
       <div class="step active" id="step1indicator">
         <div class="step-dot">1</div>
-        <div class="step-label">Profile</div>
+        <div class="step-label">AI Setup</div>
       </div>
       <div class="step-line"></div>
       <div class="step" id="step2indicator">
         <div class="step-dot">2</div>
-        <div class="step-label">AI Setup</div>
+        <div class="step-label">Profile</div>
       </div>
       <div class="step-line"></div>
       <div class="step" id="step3indicator">
@@ -486,14 +449,87 @@
       </div>
     </div>
 
-    <!-- Step 1: Profile -->
+    <!-- Step 1: AI Setup -->
     <div class="card active" id="step1">
       <div class="card-header">
+        <h2>Connect Your AI</h2>
+        <p>FormFill AI uses your own API key to power resume import and autofill. Your key is stored locally and never sent anywhere except the AI provider you choose.</p>
+      </div>
+      <div class="card-body">
+        <div class="provider-grid">
+          <div class="provider-card selected" data-provider="claude" id="providerClaude">
+            <div class="provider-icon">🟠</div>
+            <div class="provider-name">Claude</div>
+            <div class="provider-desc">Anthropic's API · claude-haiku-4-5<br><strong style="color:var(--gold)">Recommended</strong> — supports PDF resume import</div>
+          </div>
+          <div class="provider-card" data-provider="openai" id="providerOpenAI">
+            <div class="provider-icon">🟢</div>
+            <div class="provider-name">ChatGPT</div>
+            <div class="provider-desc">OpenAI's API · gpt-4o-mini<br>Fast and affordable</div>
+          </div>
+        </div>
+
+        <div class="key-steps">
+          <div class="key-step">
+            <div class="key-step-num">1</div>
+            <div class="key-step-content">
+              <div class="key-step-title">Get your API key</div>
+              <div class="key-step-desc" id="keyStepDesc">Sign into the Anthropic Console, create a new API key, and copy it. It only takes a minute.</div>
+              <button type="button" class="btn-get-key" id="openConsoleBtn">Open Anthropic Console →</button>
+            </div>
+          </div>
+          <div class="key-step">
+            <div class="key-step-num">2</div>
+            <div class="key-step-content">
+              <div class="key-step-title">Paste it below and connect</div>
+              <div class="key-step-desc">Copy the key from the console and paste it into the field below, then click Connect.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>API Key</label>
+          <input type="password" id="apiKey" placeholder="sk-ant-... or sk-..." />
+        </div>
+
+        <div class="test-row">
+          <button class="test-btn" id="testApiBtn">Test Connection</button>
+          <div class="test-result" id="testResult" style="display:none"></div>
+        </div>
+
+        <span class="error-msg" id="apiError">Please enter a valid API key.</span>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="connectAndContinue">Connect & Continue →</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Profile -->
+    <div class="card" id="step2">
+      <div class="card-header">
         <h2>Your Profile</h2>
-        <p>This is stored locally on your machine and used to fill job applications. You can add more info anytime.</p>
+        <p>Stored locally on your device. Used to fill job applications automatically. You can import from a resume or fill manually.</p>
       </div>
       <div class="card-body">
         <div class="form-grid">
+
+          <!-- Resume Import -->
+          <div class="resume-import">
+            <div class="resume-import-title">📄 Import from Resume</div>
+            <div class="resume-import-desc">Upload a PDF or Word document (.docx) to auto-fill the fields below. You can review and edit everything after import.</div>
+            <div class="resume-import-row">
+              <button type="button" class="btn-import" id="chooseResumeBtn">Choose File</button>
+              <input type="file" id="resumeFileInput" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+              <span class="resume-file-name" id="resumeFileName">No file chosen</span>
+            </div>
+            <div style="margin-top:8px;">
+              <span class="resume-status" id="resumeStatus"></span>
+            </div>
+          </div>
+
+          <!-- Personal Information -->
+          <div class="section-label">Personal Information</div>
+
           <div class="field">
             <label>First Name *</label>
             <input type="text" id="firstName" placeholder="Jane" />
@@ -502,14 +538,90 @@
             <label>Last Name *</label>
             <input type="text" id="lastName" placeholder="Smith" />
           </div>
-          <div class="field">
+
+          <!-- Preferred Name -->
+          <div class="field full">
+            <div class="checkbox-row">
+              <input type="checkbox" id="hasPreferredName" />
+              <label for="hasPreferredName" class="checkbox-label" style="font-size:13px;">I have a preferred name</label>
+            </div>
+          </div>
+          <div class="field preferred-name-field" id="preferredFirstNameField">
+            <label>Preferred First Name</label>
+            <input type="text" id="preferredFirstName" placeholder="e.g. Jay" />
+          </div>
+          <div class="field preferred-name-field" id="preferredLastNameField">
+            <label>Preferred Last Name</label>
+            <input type="text" id="preferredLastName" placeholder="e.g. S." />
+          </div>
+
+          <div class="field full">
             <label>Email *</label>
-            <input type="email" id="email" placeholder="jane@example.com" class="full" />
+            <input type="email" id="email" placeholder="jane@example.com" />
           </div>
-          <div class="field">
+
+          <div class="field full">
             <label>Phone</label>
-            <input type="tel" id="phone" placeholder="+1 555 000 0000" />
+            <div class="phone-row">
+              <select id="phoneCountryCode" class="country-code-select">
+                <option value="+1">+1 (US/CA)</option>
+                <option value="+44">+44 (UK)</option>
+                <option value="+91">+91 (IN)</option>
+                <option value="+61">+61 (AU)</option>
+                <option value="+49">+49 (DE)</option>
+                <option value="+33">+33 (FR)</option>
+                <option value="+39">+39 (IT)</option>
+                <option value="+34">+34 (ES)</option>
+                <option value="+81">+81 (JP)</option>
+                <option value="+82">+82 (KR)</option>
+                <option value="+86">+86 (CN)</option>
+                <option value="+55">+55 (BR)</option>
+                <option value="+52">+52 (MX)</option>
+                <option value="+7">+7 (RU)</option>
+                <option value="+31">+31 (NL)</option>
+                <option value="+46">+46 (SE)</option>
+                <option value="+47">+47 (NO)</option>
+                <option value="+45">+45 (DK)</option>
+                <option value="+358">+358 (FI)</option>
+                <option value="+41">+41 (CH)</option>
+                <option value="+43">+43 (AT)</option>
+                <option value="+32">+32 (BE)</option>
+                <option value="+351">+351 (PT)</option>
+                <option value="+48">+48 (PL)</option>
+                <option value="+64">+64 (NZ)</option>
+                <option value="+27">+27 (ZA)</option>
+                <option value="+65">+65 (SG)</option>
+                <option value="+60">+60 (MY)</option>
+                <option value="+66">+66 (TH)</option>
+                <option value="+62">+62 (ID)</option>
+                <option value="+63">+63 (PH)</option>
+                <option value="+84">+84 (VN)</option>
+                <option value="+880">+880 (BD)</option>
+                <option value="+92">+92 (PK)</option>
+                <option value="+98">+98 (IR)</option>
+                <option value="+90">+90 (TR)</option>
+                <option value="+972">+972 (IL)</option>
+                <option value="+966">+966 (SA)</option>
+                <option value="+971">+971 (AE)</option>
+                <option value="+20">+20 (EG)</option>
+                <option value="+234">+234 (NG)</option>
+                <option value="+254">+254 (KE)</option>
+                <option value="+56">+56 (CL)</option>
+                <option value="+54">+54 (AR)</option>
+                <option value="+57">+57 (CO)</option>
+                <option value="+51">+51 (PE)</option>
+                <option value="+380">+380 (UA)</option>
+                <option value="+420">+420 (CZ)</option>
+                <option value="+36">+36 (HU)</option>
+                <option value="+40">+40 (RO)</option>
+              </select>
+              <input type="tel" id="phone" placeholder="555 000 0000" />
+            </div>
           </div>
+
+          <!-- Location -->
+          <div class="section-label">Location</div>
+
           <div class="field">
             <label>City</label>
             <input type="text" id="city" placeholder="San Francisco" />
@@ -526,6 +638,10 @@
             <label>ZIP / Postal Code</label>
             <input type="text" id="zipCode" placeholder="94105" />
           </div>
+
+          <!-- Online Presence -->
+          <div class="section-label">Online Presence</div>
+
           <div class="field full">
             <label>LinkedIn URL</label>
             <input type="url" id="linkedinUrl" placeholder="https://linkedin.com/in/..." />
@@ -538,14 +654,24 @@
             <label>GitHub URL</label>
             <input type="url" id="githubUrl" placeholder="https://github.com/..." />
           </div>
-          <div class="field full">
-            <label>Current Job Title</label>
-            <input type="text" id="currentTitle" placeholder="Senior Software Engineer" />
-          </div>
-          <div class="field full">
-            <label>Current / Most Recent Company</label>
-            <input type="text" id="currentCompany" placeholder="Acme Corp" />
-          </div>
+
+          <!-- Work Experience -->
+          <div class="section-label">Work Experience</div>
+
+          <div id="workExperienceContainer"></div>
+
+          <button type="button" class="btn-add-entry" id="addWorkExperience">+ Add Work Experience</button>
+
+          <!-- Education -->
+          <div class="section-label">Education</div>
+
+          <div id="educationContainer"></div>
+
+          <button type="button" class="btn-add-entry" id="addEducation">+ Add Education</button>
+
+          <!-- Career Details -->
+          <div class="section-label">Career Details</div>
+
           <div class="field">
             <label>Years of Experience</label>
             <input type="text" id="yearsExperience" placeholder="5" />
@@ -559,67 +685,99 @@
             <input type="text" id="skills" placeholder="React, TypeScript, Node.js, Python" />
           </div>
           <div class="field full">
-            <label>Education — Degree</label>
-            <input type="text" id="educationDegree" placeholder="B.S. Computer Science" />
-          </div>
-          <div class="field full">
-            <label>Education — School</label>
-            <input type="text" id="educationSchool" placeholder="University of California, Berkeley" />
-          </div>
-          <div class="field">
-            <label>Graduation Year</label>
-            <input type="text" id="graduationYear" placeholder="2019" />
-          </div>
-          <div class="field">
-            <label>Authorized to Work In</label>
-            <input type="text" id="workAuthorization" placeholder="United States" />
-          </div>
-          <div class="field full">
             <label>Professional Summary</label>
             <textarea id="summary" placeholder="Brief summary of your background and what you're looking for..."></textarea>
           </div>
+
+          <!-- Application Q&A -->
+          <div class="section-label">Application Q&A</div>
+          <div class="qa-note full">Pre-fill answers to common application questions. The autofill bot will use these when it encounters similar questions on job applications.</div>
+
+          <div class="field full">
+            <label class="qa-label">Gender</label>
+            <select id="gender">
+              <option value="">— Select —</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Non-binary">Non-binary / Third gender</option>
+              <option value="Self-describe">Prefer to self-describe</option>
+              <option value="Prefer not to answer">Prefer not to answer</option>
+            </select>
+          </div>
+
+          <div class="field full">
+            <label class="qa-label">Do you consider yourself a person with a disability?</label>
+            <select id="disabilityStatus">
+              <option value="">— Select —</option>
+              <option value="Yes">Yes, I have a disability (or previously had one)</option>
+              <option value="No">No, I do not have a disability</option>
+              <option value="Prefer not to answer">Prefer not to answer</option>
+            </select>
+          </div>
+
+          <div class="field full">
+            <label class="qa-label">Are you a veteran or active-duty military?</label>
+            <select id="veteranStatus">
+              <option value="">— Select —</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+              <option value="Prefer not to answer">Prefer not to answer</option>
+            </select>
+          </div>
+
+          <div class="field full">
+            <label class="qa-label">Will you now or in the future require employer-sponsored work authorization (visa / sponsorship)?</label>
+            <select id="requiresSponsorship">
+              <option value="">— Select —</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+
+          <div class="field full" id="sponsorshipCountriesField" style="display:none">
+            <label>If yes, which countries require sponsorship? (comma-separated)</label>
+            <input type="text" id="sponsorshipCountries" placeholder="e.g. United States, Canada" />
+          </div>
+
+          <div class="field full">
+            <label class="qa-label">Do you possess a valid work permit for the country where you are applying?</label>
+            <select id="hasWorkPermit">
+              <option value="">— Select —</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+              <option value="Not applicable">Not applicable</option>
+            </select>
+          </div>
+
+          <div class="field full">
+            <label class="qa-label">Do you have government or public sector employment experience (federal, state/provincial, or local)?</label>
+            <select id="govtExperience">
+              <option value="">— Select —</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+
+          <div class="field full">
+            <label class="qa-label">Are you currently subject to any non-compete, non-solicitation, or non-disclosure agreements with a prior employer?</label>
+            <select id="hasNonCompete">
+              <option value="">— Select —</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+
+          <div class="field full">
+            <label class="qa-label">Have you served or are you currently serving in a government or public body with regulatory or purchasing authority?</label>
+            <select id="isGovtOfficial">
+              <option value="">— Select —</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+
         </div>
         <span class="error-msg" id="profileError">Please fill in at least First Name, Last Name, and Email.</span>
-      </div>
-      <div class="btn-row">
-        <button class="btn btn-primary" id="nextToStep2">Continue →</button>
-      </div>
-    </div>
-
-    <!-- Step 2: AI Setup -->
-    <div class="card" id="step2">
-      <div class="card-header">
-        <h2>Connect Your AI</h2>
-        <p>FormFill AI uses your own API key. Your key is stored locally and never sent to any server other than the chosen AI provider.</p>
-      </div>
-      <div class="card-body">
-        <div class="provider-grid">
-          <div class="provider-card selected" data-provider="claude" id="providerClaude">
-            <div class="provider-icon">🟠</div>
-            <div class="provider-name">Claude</div>
-            <div class="provider-desc">Anthropic's API<br>claude-haiku-4-5 (fast, cheap)</div>
-          </div>
-          <div class="provider-card" data-provider="openai" id="providerOpenAI">
-            <div class="provider-icon">🟢</div>
-            <div class="provider-name">ChatGPT</div>
-            <div class="provider-desc">OpenAI's API<br>gpt-4o-mini (fast, cheap)</div>
-          </div>
-        </div>
-
-        <div class="field">
-          <label>API Key</label>
-          <input type="password" id="apiKey" placeholder="sk-ant-... or sk-..." />
-          <p class="api-key-hint" id="apiKeyHint">
-            Get your Claude API key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>
-          </p>
-        </div>
-
-        <div class="test-row">
-          <button class="test-btn" id="testApiBtn">Test Connection</button>
-          <div class="test-result" id="testResult" style="display:none"></div>
-        </div>
-
-        <span class="error-msg" id="apiError">Please enter a valid API key.</span>
       </div>
       <div class="btn-row">
         <button class="btn btn-secondary" id="backToStep1">← Back</button>
@@ -641,14 +799,14 @@
             <li>New answers are saved and used automatically next time</li>
           </ul>
         </div>
-        <button class="btn btn-primary" id="closeSetup" style="width:100%">Start Autofilling →</button>
+        <button class="btn btn-primary" id="closeSetup" style="width:100%;margin-bottom:10px;">Start Autofilling →</button>
+        <button class="btn btn-secondary" id="editProfileBtn" style="width:100%;">Edit Profile</button>
       </div>
 
       <hr class="divider">
 
-      <!-- Settings section (also shown here for returning users) -->
       <div style="padding: 0 28px 28px">
-        <div class="section-label" style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold-dim);margin-bottom:14px;">
+        <div style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold-dim);margin-bottom:14px;">
           Settings
         </div>
         <div class="field" style="margin-bottom:12px">
