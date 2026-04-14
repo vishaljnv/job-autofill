@@ -265,3 +265,59 @@
   accent-color: #c4a97d;
   cursor: pointer;
 }
+
+/* ─── Date Section Prompt ─────────────────────────────────────────────── */
+.ffprompt-date-row {
+  padding: 10px 14px 4px;
+  border-bottom: 1px solid rgba(232,213,183,0.08);
+}
+
+.ffprompt-date-row:last-of-type {
+  border-bottom: none;
+}
+
+.ffprompt-date-lbl {
+  display: block;
+  font-size: 11px;
+  font-family: 'Georgia', serif;
+  color: #c4a97d;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.ffprompt-date-fields {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.ffprompt-date-fields select,
+.ffprompt-date-fields input {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(232,213,183,0.2);
+  border-radius: 8px;
+  padding: 7px 8px;
+  color: #e8d5b7;
+  font-size: 12px;
+  font-family: 'Georgia', serif;
+  outline: none;
+  transition: border-color 0.15s;
+  min-width: 0;
+}
+
+.ffprompt-date-fields select:focus,
+.ffprompt-date-fields input:focus {
+  border-color: rgba(232,213,183,0.6);
+}
+
+.ffprompt-date-fields select:first-child { flex: 2; } /* Month — widest */
+.ffprompt-date-fields select:nth-child(2) { flex: 1; } /* Day */
+.ffprompt-date-fields select:nth-child(3),
+.ffprompt-date-fields input:last-of-type  { flex: 1.5; } /* Year */
+
+.ffprompt-date-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 14px;
+}

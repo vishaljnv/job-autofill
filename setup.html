@@ -160,6 +160,13 @@
     textarea { resize: vertical; min-height: 80px; }
     select option { background: var(--card); }
 
+    .field-optional {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 400;
+      font-style: italic;
+    }
+
     /* Section label inside form */
     .section-label {
       grid-column: 1 / -1;
@@ -619,15 +626,23 @@
             </div>
           </div>
 
-          <!-- Location -->
-          <div class="section-label">Location</div>
+          <!-- Address -->
+          <div class="section-label">Your Address</div>
 
+          <div class="field full">
+            <label>Address Line 1 <span class="field-optional">(optional)</span></label>
+            <input type="text" id="addressLine1" placeholder="123 Main St" />
+          </div>
+          <div class="field full">
+            <label>Address Line 2 <span class="field-optional">(optional)</span></label>
+            <input type="text" id="addressLine2" placeholder="Apt 4B, Suite 200, etc." />
+          </div>
           <div class="field">
             <label>City</label>
             <input type="text" id="city" placeholder="San Francisco" />
           </div>
           <div class="field">
-            <label>State / Province</label>
+            <label>State / Province / Region</label>
             <input type="text" id="state" placeholder="CA" />
           </div>
           <div class="field">

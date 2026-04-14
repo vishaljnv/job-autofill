@@ -1,5 +1,25 @@
 // setup.js
 
+// ─── Date helpers ─────────────────────────────────────────────────────────
+
+// Convert any stored date string to YYYY-MM-DD for use as <input type="date"> value.
+// Handles: YYYY-MM-DD (pass through), YYYY-MM (append -01), DD/MM/YYYY (reformat).
+function toDateInputValue(stored) {
+  if (!stored) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(stored)) return stored;                    // already YYYY-MM-DD
+  if (/^\d{4}-\d{2}$/.test(stored))        return `${stored}-01`;            // YYYY-MM → YYYY-MM-01
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(stored)) {                               // DD/MM/YYYY
+    const [d, m, y] = stored.split('/');
+    return `${y}-${m}-${d}`;
+  }
+  return '';
+}
+
+// <input type="date"> always returns YYYY-MM-DD — just pass through.
+function toStoredDate(val) {
+  return val || '';
+}
+
 let currentStep = 1;
 let selectedProvider = 'claude';
 let workExperienceCount = 0;
@@ -62,20 +82,40 @@ function createWorkExperienceEntry(idx, data = {}) {
         <input type="text" id="we-company-${idx}" placeholder="Acme Corp" value="${escapeAttr(data.company)}" />
       </div>
       <div class="field full">
-        <label>Location</label>
-        <input type="text" id="we-location-${idx}" placeholder="San Francisco, CA" value="${escapeAttr(data.location)}" />
+        <label>Employer Address <span class="field-optional">(optional)</span></label>
+        <input type="text" id="we-addressLine1-${idx}" placeholder="123 Corporate Blvd" value="${escapeAttr(data.addressLine1)}" />
+      </div>
+      <div class="field">
+        <label>City</label>
+        <input type="text" id="we-city-${idx}" placeholder="San Francisco" value="${escapeAttr(data.city)}" />
+      </div>
+      <div class="field">
+        <label>State / Province</label>
+        <input type="text" id="we-state-${idx}" placeholder="CA" value="${escapeAttr(data.state)}" />
+      </div>
+      <div class="field">
+        <label>Country</label>
+        <input type="text" id="we-country-${idx}" placeholder="United States" value="${escapeAttr(data.country)}" />
+      </div>
+      <div class="field">
+        <label>ZIP / Postal Code <span class="field-optional">(optional)</span></label>
+        <input type="text" id="we-zipCode-${idx}" placeholder="94105" value="${escapeAttr(data.zipCode)}" />
       </div>
       <div class="field">
         <label>Start Date</label>
-        <input type="month" id="we-startDate-${idx}" value="${escapeAttr(data.startDate)}" />
+        <input type="date" id="we-startDate-${idx}" value="${escapeAttr(toDateInputValue(data.startDate))}" />
       </div>
       <div class="field">
         <label>End Date</label>
-        <input type="month" id="we-endDate-${idx}" value="${escapeAttr(data.endDate)}" ${data.isCurrent ? 'disabled' : ''} />
+        <input type="date" id="we-endDate-${idx}" value="${escapeAttr(toDateInputValue(data.endDate))}" ${data.isCurrent ? 'disabled' : ''} />
         <div class="checkbox-row" style="margin-top:7px;">
           <input type="checkbox" id="we-isCurrent-${idx}" ${data.isCurrent ? 'checked' : ''} />
           <label for="we-isCurrent-${idx}" class="checkbox-label">Current job</label>
         </div>
+      </div>
+      <div class="field full">
+        <label>Description <span class="field-optional">(responsibilities &amp; achievements)</span></label>
+        <textarea id="we-description-${idx}" rows="4" placeholder="Describe your role, key responsibilities and achievements...">${escapeAttr(data.description)}</textarea>
       </div>
     </div>
   `;
@@ -113,6 +153,10 @@ function createEducationEntry(idx, data = {}) {
         <label>University / College</label>
         <input type="text" id="edu-university-${idx}" placeholder="University of California, Berkeley" value="${escapeAttr(data.university)}" />
       </div>
+      <div class="field full">
+        <label>Major / Field of Study</label>
+        <input type="text" id="edu-major-${idx}" placeholder="Computer Science" value="${escapeAttr(data.major)}" />
+      </div>
       <div class="field">
         <label>Location</label>
         <input type="text" id="edu-location-${idx}" placeholder="Berkeley, CA" value="${escapeAttr(data.location)}" />
@@ -123,14 +167,25 @@ function createEducationEntry(idx, data = {}) {
       </div>
       <div class="field">
         <label>From Date</label>
-        <input type="month" id="edu-fromDate-${idx}" value="${escapeAttr(data.fromDate)}" />
+        <input type="date" id="edu-fromDate-${idx}" value="${escapeAttr(toDateInputValue(data.fromDate))}" />
       </div>
       <div class="field">
         <label>To Date</label>
-        <input type="month" id="edu-toDate-${idx}" value="${escapeAttr(data.toDate)}" />
+        <input type="date" id="edu-toDate-${idx}" value="${escapeAttr(toDateInputValue(data.toDate))}" ${data.isCurrentlyStudying ? 'disabled' : ''} />
+        <div class="checkbox-row" style="margin-top:7px;">
+          <input type="checkbox" id="edu-isCurrent-${idx}" ${data.isCurrentlyStudying ? 'checked' : ''} />
+          <label for="edu-isCurrent-${idx}" class="checkbox-label">Currently studying</label>
+        </div>
       </div>
     </div>
   `;
+
+  const eduCheckbox = div.querySelector(`#edu-isCurrent-${idx}`);
+  const toDateInput = div.querySelector(`#edu-toDate-${idx}`);
+  eduCheckbox.addEventListener('change', () => {
+    toDateInput.disabled = eduCheckbox.checked;
+    if (eduCheckbox.checked) toDateInput.value = '';
+  });
 
   div.querySelector('.btn-remove').addEventListener('click', () => {
     div.remove();
@@ -155,7 +210,7 @@ function readProfile() {
 
   const flatFields = [
     'firstName', 'lastName', 'email', 'phoneCountryCode', 'phone',
-    'city', 'state', 'country', 'zipCode',
+    'addressLine1', 'addressLine2', 'city', 'state', 'country', 'zipCode',
     'linkedinUrl', 'websiteUrl', 'githubUrl',
     'yearsExperience', 'desiredSalary', 'skills', 'summary',
     'gender', 'disabilityStatus', 'veteranStatus', 'requiresSponsorship', 'sponsorshipCountries',
@@ -185,10 +240,15 @@ function readProfile() {
     workExperience.push({
       title,
       company,
-      location: document.getElementById(`we-location-${idx}`)?.value.trim() || '',
-      startDate: document.getElementById(`we-startDate-${idx}`)?.value || '',
-      endDate: document.getElementById(`we-endDate-${idx}`)?.value || '',
-      isCurrent: document.getElementById(`we-isCurrent-${idx}`)?.checked || false
+      addressLine1: document.getElementById(`we-addressLine1-${idx}`)?.value.trim() || '',
+      city:         document.getElementById(`we-city-${idx}`)?.value.trim() || '',
+      state:        document.getElementById(`we-state-${idx}`)?.value.trim() || '',
+      country:      document.getElementById(`we-country-${idx}`)?.value.trim() || '',
+      zipCode:      document.getElementById(`we-zipCode-${idx}`)?.value.trim() || '',
+      startDate: toStoredDate(document.getElementById(`we-startDate-${idx}`)?.value || ''),
+      endDate:   toStoredDate(document.getElementById(`we-endDate-${idx}`)?.value   || ''),
+      isCurrent: document.getElementById(`we-isCurrent-${idx}`)?.checked || false,
+      description: document.getElementById(`we-description-${idx}`)?.value.trim() || ''
     });
   });
   if (workExperience.length > 0) profile.workExperience = workExperience;
@@ -203,10 +263,12 @@ function readProfile() {
     education.push({
       degree,
       university,
+      major: document.getElementById(`edu-major-${idx}`)?.value.trim() || '',
       location: document.getElementById(`edu-location-${idx}`)?.value.trim() || '',
       country: document.getElementById(`edu-country-${idx}`)?.value.trim() || '',
-      fromDate: document.getElementById(`edu-fromDate-${idx}`)?.value || '',
-      toDate: document.getElementById(`edu-toDate-${idx}`)?.value || ''
+      fromDate: toStoredDate(document.getElementById(`edu-fromDate-${idx}`)?.value || ''),
+      toDate:   toStoredDate(document.getElementById(`edu-toDate-${idx}`)?.value   || ''),
+      isCurrentlyStudying: document.getElementById(`edu-isCurrent-${idx}`)?.checked || false
     });
   });
   if (education.length > 0) profile.education = education;
@@ -217,7 +279,7 @@ function readProfile() {
 function loadProfile(profile) {
   const flatFields = [
     'firstName', 'lastName', 'email', 'phoneCountryCode', 'phone',
-    'city', 'state', 'country', 'zipCode',
+    'addressLine1', 'addressLine2', 'city', 'state', 'country', 'zipCode',
     'linkedinUrl', 'websiteUrl', 'githubUrl',
     'yearsExperience', 'desiredSalary', 'skills', 'summary',
     'gender', 'disabilityStatus', 'veteranStatus', 'requiresSponsorship', 'sponsorshipCountries',
@@ -357,7 +419,7 @@ function populateFormFromResume(parsed) {
 
   const flatFields = [
     'firstName', 'lastName', 'email', 'phoneCountryCode', 'phone',
-    'city', 'state', 'country', 'zipCode',
+    'addressLine1', 'addressLine2', 'city', 'state', 'country', 'zipCode',
     'linkedinUrl', 'websiteUrl', 'githubUrl',
     'yearsExperience', 'desiredSalary', 'skills', 'summary',
     'gender', 'disabilityStatus', 'veteranStatus', 'requiresSponsorship', 'sponsorshipCountries',

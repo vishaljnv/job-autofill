@@ -4,7 +4,9 @@
 
 // ─── Message Router ───────────────────────────────────────────────────────
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  handleMessage(msg).then(sendResponse).catch(err => {
+  // Attach sender tab ID so handlers can use it
+  const msgWithMeta = { ...msg, _tabId: sender.tab?.id };
+  handleMessage(msgWithMeta).then(sendResponse).catch(err => {
     console.error('[FormFill BG]', err);
     sendResponse({ error: err.message });
   });
@@ -30,6 +32,20 @@ async function handleMessage(msg) {
       profile[msg.key] = msg.value;
       await chromeSet({ userProfile: profile });
       return { ok: true };
+    }
+
+    case 'UPDATE_PROFILE': {
+      await chromeSet({ userProfile: msg.profile });
+      return { ok: true };
+    }
+
+    case 'LEARN_FROM_FORM': {
+      try {
+        await learnFromForm(msg.fields, msg.hostname);
+        return { ok: true };
+      } catch (err) {
+        return { ok: false, error: err.message };
+      }
     }
 
     case 'LEARN_MAPPING': {
@@ -71,6 +87,22 @@ async function handleMessage(msg) {
       } catch (err) {
         return { error: err.message };
       }
+    }
+
+    case 'TRIGGER_AUTOFILL_FRAMES': {
+      // Broadcast autofill trigger to every frame on the sender's tab
+      const tabId = msg._tabId;
+      if (tabId) {
+        // Get all frames and send to each (skip frame 0 = top frame, it already tried)
+        chrome.webNavigation.getAllFrames({ tabId }, (frames) => {
+          if (!frames) return;
+          frames.forEach(frame => {
+            if (frame.frameId === 0) return; // skip top frame
+            chrome.tabs.sendMessage(tabId, { type: 'TRIGGER_AUTOFILL' }, { frameId: frame.frameId });
+          });
+        });
+      }
+      return { ok: true };
     }
 
     case 'OPEN_SETUP': {
@@ -117,11 +149,12 @@ function buildProfileSummary(profile) {
   const flatKeys = [
     'firstName', 'lastName', 'preferredFirstName', 'preferredLastName',
     'email', 'phoneCountryCode', 'phone',
-    'city', 'state', 'country', 'zipCode',
+    'addressLine1', 'addressLine2', 'city', 'state', 'country', 'zipCode',
     'linkedinUrl', 'websiteUrl', 'githubUrl',
     'yearsExperience', 'desiredSalary', 'skills', 'summary',
     'gender', 'disabilityStatus', 'veteranStatus', 'requiresSponsorship', 'sponsorshipCountries',
-    'hasWorkPermit', 'govtExperience', 'hasNonCompete', 'isGovtOfficial'
+    'hasWorkPermit', 'govtExperience', 'hasNonCompete', 'isGovtOfficial',
+    'educationMajor'
   ];
   for (const key of flatKeys) {
     if (profile[key]) lines.push(`${key}: ${profile[key]}`);
@@ -147,6 +180,13 @@ function buildProfileSummary(profile) {
       if (exp.location) parts.push(`in ${exp.location}`);
       const dateRange = `${exp.startDate || '?'} to ${exp.isCurrent ? 'present' : (exp.endDate || '?')}`;
       lines.push(`workExperience[${i}]: ${parts.join(' ')} (${dateRange})`);
+      // Expose employer address sub-fields so AI can fill work experience address fields
+      if (exp.addressLine1) lines.push(`workExperience[${i}].location: ${exp.addressLine1}`);
+      if (exp.city)    lines.push(`workExperience[${i}].city: ${exp.city}`);
+      if (exp.state)   lines.push(`workExperience[${i}].state: ${exp.state}`);
+      if (exp.country) lines.push(`workExperience[${i}].country: ${exp.country}`);
+      if (exp.zipCode) lines.push(`workExperience[${i}].zipCode: ${exp.zipCode}`);
+      if (exp.description) lines.push(`workExperience[${i}].description: ${exp.description}`);
     });
   } else {
     // Legacy flat fields (backwards compatibility)
@@ -160,6 +200,7 @@ function buildProfileSummary(profile) {
     const first = profile.education[0];
     if (first.degree) lines.push(`educationDegree: ${first.degree}`);
     if (first.university) lines.push(`educationSchool: ${first.university}`);
+    if (first.major) lines.push(`educationMajor: ${first.major}`);
 
     profile.education.forEach((edu, i) => {
       const parts = [];
@@ -169,6 +210,8 @@ function buildProfileSummary(profile) {
       if (edu.country) parts.push(`, ${edu.country}`);
       const dateRange = `${edu.fromDate || '?'} to ${edu.toDate || '?'}`;
       lines.push(`education[${i}]: ${parts.join(' ')} (${dateRange})`);
+      if (edu.major) lines.push(`education[${i}].major: ${edu.major}`);
+      lines.push(`education[${i}].isCurrentlyStudying: ${edu.isCurrentlyStudying ? 'true' : 'false'}`);
     });
   } else {
     // Legacy flat fields (backwards compatibility)
@@ -178,6 +221,137 @@ function buildProfileSummary(profile) {
   }
 
   return lines.join('\n');
+}
+
+// ─── Learn From Form ─────────────────────────────────────────────────────
+
+async function learnFromForm(fields, hostname) {
+  const { provider, apiKey } = await getAIConfig();
+  if (!apiKey) return; // silently skip if not configured
+
+  const profile = await getProfile();
+
+  // Separate date-role fields from regular fields
+  const dateFields  = fields.filter(f => f.dateRole && f.value);
+  const plainFields = fields.filter(f => !f.dateRole && f.value);
+
+  // ── Step 1: process date triplets back into YYYY-MM-DD strings ──────────
+  const MONTH_MAP = {
+    january:'01',february:'02',march:'03',april:'04',may:'05',june:'06',
+    july:'07',august:'08',september:'09',october:'10',november:'11',december:'12'
+  };
+
+  // Group date fields by (section, surroundingText) — same triplet shares both
+  const dateTriplets = new Map();
+  for (const f of dateFields) {
+    const key = (f.sectionContext || '') + '|' + (f.surroundingText || '').substring(0, 80);
+    if (!dateTriplets.has(key)) dateTriplets.set(key, { section: f.sectionContext || '', fields: [] });
+    dateTriplets.get(key).fields.push(f);
+  }
+
+  for (const { section, fields: tFields } of dateTriplets.values()) {
+    const monthF = tFields.find(f => f.dateRole === 'month');
+    const dayF   = tFields.find(f => f.dateRole === 'day');
+    const yearF  = tFields.find(f => f.dateRole === 'year');
+    const mv = monthF?.value || ''; const dv = dayF?.value || ''; const yv = yearF?.value || '';
+    if (!yv && !mv) continue;
+
+    const monthNum = MONTH_MAP[mv.toLowerCase()] || mv.padStart(2, '0');
+    const dayPad   = String(parseInt(dv) || 1).padStart(2, '0');
+    const dateStr  = `${yv || '????'}-${monthNum}-${dayPad}`;
+
+    // Determine date role from surrounding text
+    const text = (tFields[0].surroundingText || '').toLowerCase();
+    const role = /start|from|\bbegin/i.test(text) ? 'start'
+               : /end|to\b|until/i.test(text)     ? 'end'
+               : 'graduation';
+
+    const idx = parseInt((section.match(/\((\d+)\)/) || ['','1'])[1]) - 1;
+    const isEdu  = /education|school|degree/i.test(section);
+    const isWork = /experience|employer|professional/i.test(section);
+
+    if (isEdu) {
+      if (!profile.education) profile.education = [];
+      if (!profile.education[idx]) profile.education[idx] = {};
+      profile.education[idx][role === 'start' ? 'fromDate' : 'toDate'] = dateStr;
+    } else if (isWork) {
+      if (!profile.workExperience) profile.workExperience = [];
+      if (!profile.workExperience[idx]) profile.workExperience[idx] = {};
+      profile.workExperience[idx][role === 'start' ? 'startDate' : 'endDate'] = dateStr;
+    }
+  }
+
+  // ── Step 2: use AI to map plain fields → profile keys ───────────────────
+  if (plainFields.length > 0) {
+    const fieldDesc = plainFields.map(f => {
+      let d = `label="${f.label}" value="${f.value}"`;
+      if (f.sectionContext) d += ` section="${f.sectionContext}"`;
+      if (f.surroundingText) d += ` context="${f.surroundingText.substring(0, 80)}"`;
+      return `- ${d}`;
+    }).join('\n');
+
+    const prompt = `A user has filled out a job application form. Extract the data and map it to profile fields.
+
+Filled form fields:
+${fieldDesc}
+
+Map each field to the correct profile key and return the user's data as a flat JSON object.
+Use these profile keys where appropriate:
+firstName, lastName, preferredFirstName, preferredLastName,
+email, phoneCountryCode, phone, city, state, country, zipCode,
+linkedinUrl, websiteUrl, githubUrl, yearsExperience, desiredSalary, skills, summary,
+gender, disabilityStatus, veteranStatus, requiresSponsorship, hasWorkPermit,
+govtExperience, hasNonCompete, isGovtOfficial.
+
+IMPORTANT:
+- "Legal first name", "Legal name", "Given name" → firstName (NOT preferredFirstName)
+- "Legal last name", "Surname" → lastName (NOT preferredLastName)
+- "Preferred name", "Goes by" → preferredFirstName
+- Only include fields where the value is clearly meaningful (not empty, not placeholder text).
+- For work experience employer/title/location fields, use keys like workExperience_0_company, workExperience_0_title, workExperience_1_company etc.
+- For education fields: education_0_university, education_0_degree etc.
+
+Return ONLY raw JSON. No markdown.`;
+
+    try {
+      const mapped = await callAI(provider, apiKey, prompt);
+
+      // Merge flat keys into profile, handle workExperience_N_* and education_N_* specially
+      for (const [key, val] of Object.entries(mapped)) {
+        if (!val) continue;
+        const weMatch  = key.match(/^workExperience_(\d+)_(.+)$/);
+        const eduMatch = key.match(/^education_(\d+)_(.+)$/);
+        if (weMatch) {
+          const [, idx, field] = weMatch;
+          if (!profile.workExperience) profile.workExperience = [];
+          if (!profile.workExperience[idx]) profile.workExperience[idx] = {};
+          profile.workExperience[idx][field] = val;
+        } else if (eduMatch) {
+          const [, idx, field] = eduMatch;
+          if (!profile.education) profile.education = [];
+          if (!profile.education[idx]) profile.education[idx] = {};
+          profile.education[idx][field] = val;
+        } else {
+          profile[key] = val;
+        }
+      }
+
+      // Learn field→profileKey mappings for this hostname
+      for (const f of plainFields) {
+        const matchKey = Object.keys(mapped).find(k => {
+          const v = mapped[k];
+          return v && String(v).toLowerCase() === String(f.value).toLowerCase();
+        });
+        if (matchKey && !matchKey.includes('_')) {
+          await learnMapping(hostname, f.key, matchKey);
+        }
+      }
+    } catch (e) {
+      // AI mapping failed — save what we have from dates at least
+    }
+  }
+
+  await chromeSet({ userProfile: profile });
 }
 
 // ─── AI Calls ────────────────────────────────────────────────────────────
@@ -221,6 +395,8 @@ async function aiMapFields(fields, profile) {
     if (f.label) desc += ` label="${f.label}"`;
     if (f.placeholder) desc += ` placeholder="${f.placeholder}"`;
     if (f.type) desc += ` type="${f.type}"`;
+    if (f.sectionContext) desc += ` section="${f.sectionContext}"`;
+    if (f.dateRole) desc += ` dateRole="${f.dateRole}"`;
     if (f.options && f.options.length > 0) {
       desc += ` options=[${f.options.slice(0, 8).map(o => `"${o.text}"`).join(', ')}]`;
     }
@@ -231,11 +407,63 @@ async function aiMapFields(fields, profile) {
 
   const prompt = `You are a job application autofill assistant. Fill form fields with the best-matching profile data.
 
+DATE COMPONENT FIELDS — critical rules:
+Fields with dateRole="month", dateRole="day", or dateRole="year" are parts of a single date.
+Use the field's section="" attribute to identify WHICH date to use:
+
+- section contains "Education" or "School" or "Degree":
+    Look at education[N] entries. Identify the date by surrounding label context:
+    - "graduation", "date received", "completed", "toDate" → use education[N].toDate
+    - "from", "start", "enrolled", "fromDate" → use education[N].fromDate
+    Then extract the component:
+    - dateRole="month" → full month name, e.g. "2019-05" → "May"
+    - dateRole="day"   → day number as string — BUT if the stored date ends in "-01" (meaning the day was never explicitly set, just defaulted), return null. Only fill a day field when the date has a non-01 day component (e.g. "2019-05-15" → "15").
+    - dateRole="year"  → 4-digit year string, e.g. "2019"
+
+- section contains "Experience" or "Employer" or "Work" or "Professional":
+    Look at workExperience[N] entries. Identify by label context:
+    - "start", "from", "begin" → workExperience[N].startDate
+    - "end", "to", "until" → workExperience[N].endDate
+    Then extract the same way (month name / day number / year).
+    For dateRole="day": same rule — if the date ends in "-01", return null.
+
+Month name mapping: 01→January, 02→February, 03→March, 04→April, 05→May, 06→June,
+  07→July, 08→August, 09→September, 10→October, 11→November, 12→December
+
+NEVER map date components to "dateOfBirth" or personal birth date unless the section/label explicitly says "Date of Birth".
+
 FLEXIBLE FIELD NAME MATCHING — treat these as equivalent when mapping:
-- "First Name", "Given Name", "Forename", "First" → firstName
-- "Last Name", "Surname", "Family Name", "Last" → lastName
-- "Preferred Name", "Preferred First Name", "Goes By", "Nickname" → preferredFirstName
-- "Preferred Last Name", "Preferred Surname" → preferredLastName
+- "First Name", "Given Name", "Forename", "First", "Legal First Name", "Legal Name", "Legal Given Name" → firstName
+- "Last Name", "Surname", "Family Name", "Last", "Legal Last Name", "Legal Surname", "Legal Family Name" → lastName
+- ONLY use preferredFirstName for fields explicitly labelled "Preferred Name", "Preferred First Name", "Goes By", "Nickname" — never for "Legal" fields
+- ONLY use preferredLastName for fields explicitly labelled "Preferred Last Name", "Preferred Surname"
+- When in doubt between firstName and preferredFirstName, always choose firstName
+- "Address", "Street Address", "Address Line 1", "Street", "Street Line 1" → addressLine1 (ONLY when section is blank or refers to applicant/personal/contact info)
+- "Address Line 2", "Apt", "Suite", "Unit", "Floor", "Street Line 2" → addressLine2 (same condition as above)
+- "Highest Degree", "Degree Earned", "Highest Level of Education", "Degree (Completed or Not Completed)" → educationDegree (use education[0].degree)
+- "Major", "Major / Program of Study", "Field of Study", "Program", "Concentration", "Specialization" → educationMajor (use education[0].major)
+- "Description", "Job Description", "Responsibilities", "Duties", "What did you do", "Role Description" in a Work Experience section → use workExperience[N].description (NOT the profile summary field)
+
+GRADUATION STATUS MAPPING:
+- "Did You Graduate?", "Graduation Status", "Have you graduated?" → check education[N].isCurrentlyStudying:
+  - If isCurrentlyStudying is true → map to the option meaning "No" / "In Progress" / "Currently Enrolled"
+  - If isCurrentlyStudying is false and a graduation/toDate exists → map to the option meaning "Yes" / "Received" / "Completed"
+
+"NOT LISTED" TEXT FIELD RULE:
+- Fields labelled like "If your school is not listed, enter it here", "If your employer is not listed, enter it here", "Not listed? Enter here", or similar patterns — these are fallback text fields adjacent to a School/Employer select dropdown.
+  - First check whether the adjacent select field's options (provided in the options=[...] of another field in the same section) already contain the user's school/employer value.
+  - If the school/employer IS present in the dropdown options → return null for this text field (the select handles it).
+  - Only fill this text field when the school/employer is NOT found in any dropdown options in the same section.
+
+ABSOLUTE RULE — NEVER use the user's personal addressLine1, addressLine2, city, state, zipCode, or country for ANY field that has a section= attribute containing "Experience", "Employer", "Professional", or "Work". These fields MUST use workExperience[N] sub-fields or return null. This overrides all other mapping rules.
+
+SECTION-AWARE ADDRESS RULE:
+- If a field has section containing "Work Experience", "Professional Experience", "Employer", or any work/job section:
+  - "Address", "Street" fields → use workExperience[N].location (employer street address), NOT addressLine1
+  - "City" → use workExperience[N].city or extract from workExperience[N].location
+  - "State", "Region", "Province" → use workExperience[N].state or extract from workExperience[N].location
+  - "Postal Code", "Zip" → use workExperience[N].zipCode if available, else null
+  - "Country" → use workExperience[N].country if available, else null
 - "Mobile", "Cell", "Cell Phone", "Telephone", "Tel", "Phone Number" → fullPhone or phone
 - "Country Code", "Phone Code", "Dialling Code" → phoneCountryCode
 - "Current Title", "Job Title", "Position", "Role", "Current Position", "Current Role" → currentTitle
@@ -256,7 +484,7 @@ FLEXIBLE FIELD NAME MATCHING — treat these as equivalent when mapping:
 - "LinkedIn", "LinkedIn Profile" → linkedinUrl
 - "Website", "Portfolio", "Personal Site" → websiteUrl
 - "GitHub", "Github Profile" → githubUrl
-- "Postal Code", "Post Code", "Pin Code" → zipCode
+- "Postal Code", "Post Code", "Pin Code" → zipCode (only for personal/contact section fields — see ABSOLUTE RULE above)
 
 Form fields to fill:
 ${fieldDescriptions}
@@ -330,7 +558,8 @@ Extract these fields (use null if not found, use empty array [] for empty lists)
       "location": "city and state/country",
       "startDate": "YYYY-MM format, estimate if only year given",
       "endDate": "YYYY-MM format or empty string if current",
-      "isCurrent": true or false
+      "isCurrent": true or false,
+      "description": "job responsibilities and achievements as a paragraph or bullet points"
     }
   ],
   "education": [
@@ -340,7 +569,8 @@ Extract these fields (use null if not found, use empty array [] for empty lists)
       "location": "city and state",
       "country": "country",
       "fromDate": "YYYY-MM format, estimate if only year",
-      "toDate": "YYYY-MM format, estimate if only year"
+      "toDate": "YYYY-MM format, estimate if only year",
+      "major": "field of study / major / program name (separate from degree type)"
     }
   ]
 }
